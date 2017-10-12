@@ -102,21 +102,18 @@ contract Crowdsale is Owned, Stateful {
         return (investorIndex[investors[_address].index] == _address);
     }
 
-    function insertInvestor(address _address, uint _amountTokens) internal returns(uint index) {
-        require(!isInvestor(_address));       
+    function insertInvestor(address _address, uint _amountTokens) internal returns(uint index) {           
         investors[_address].amountTokens = _amountTokens;       
         investors[_address].index = investorIndex.push(_address) - 1;       
         return investorIndex.length - 1;
     }
 
-    function updateInvestorTokens(address _address, uint _amountTokens) internal returns(bool success) {
-        require(isInvestor(_address));   
+    function updateInvestorTokens(address _address, uint _amountTokens) internal returns(bool success) {     
         investors[_address].amountTokens += _amountTokens;  
         return true;
     }
 
-    function deleteInvestor(address _address) internal returns(uint index) {
-        require(isInvestor(_address));   
+    function deleteInvestor(address _address) internal returns(uint index) {        
         uint rowToDelete = investors[_address].index;
         burnTokens(_address, investors[_address].amountTokens);
         address keyToMove = investorIndex[investorIndex.length-1];
@@ -135,7 +132,7 @@ contract Crowdsale is Owned, Stateful {
 
     function depositUSD(address _to, uint _amountUSDWEI, uint _bonusPercentWEI) public onlyOwner crowdsaleState {     
         if (_bonusPercentWEI != 0) {
-            _amountUSDWEI = _amountUSDWEI * (1 + _bonusPercentWEI / 1 ether / 100);
+            _amountUSDWEI = (_amountUSDWEI * ( 1 ether + _bonusPercentWEI / 100)) / 1 ether;
         }       
         emitTokensFor(_to,  _amountUSDWEI);
     }
@@ -196,7 +193,7 @@ contract Token is Crowdsale, ERC20 {
 
     mapping(address => uint) internal balances;
     mapping(address => mapping(address => uint)) public allowed;
-    uint8 public constant decimals = 8;
+    uint8 public constant decimals = 17;
 
     function Token() payable Crowdsale() {}
 
@@ -252,14 +249,22 @@ contract MigratableToken is Token {
     event Migrated(address indexed from, address indexed to, uint value);
 
     //migration by owner
-    function migrateToNewContract(address _address) external onlyOwner saleFinishedState {
+    function migrateToNewContract(address _address) public onlyOwner saleFinishedState {
         require(migrationAgent != 0 && migratedInvestors[_address] == false);
         uint value = balances[_address];
+        require(value > 0);
         deleteInvestor(_address);       
         totalMigrated += value;
         MigrationAgent(migrationAgent).migrateFrom(_address, value);
         Migrated(_address, migrationAgent, value);
         migratedInvestors[_address] = true;
+    }  
+
+    function migrateAllToNewContract(uint _investorsToProcess) public onlyOwner saleFinishedState {         
+        while (_investorsToProcess > 0 && investorIndex.length > 0) {
+            migrateToNewContract(investorIndex[investorIndex.length - 1]);
+            _investorsToProcess--;               
+           }      
     }
 
     function setMigrationAgent(address _agent) external onlyOwner {
@@ -268,13 +273,10 @@ contract MigratableToken is Token {
     }
 }
 
-contract SmartValleyToken is MigratableToken, MigrationAgent {
+contract SmartValleyToken is MigratableToken {
 
     string public constant symbol = "SVT";
-
-    string public constant name = "SmartValley Token";
-
-    mapping(address => bool) public allowedContracts;
+    string public constant name = "SmartValley Token";  
 
     function SmartValleyToken() payable MigratableToken() {}
 
@@ -291,9 +293,5 @@ contract SmartValleyToken is MigratableToken, MigrationAgent {
         balances[_address] -= _amount;
         totalSupply -= _amount;
         Transfer(_address, this, _amount);
-    }    
-
-    function migrateFrom(address _from, uint256 _value) {
-        emitTokens(_from, _value);
-    }
+    }  
 }
