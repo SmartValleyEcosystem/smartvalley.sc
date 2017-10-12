@@ -132,7 +132,7 @@ contract Crowdsale is Owned, Stateful {
 
     function depositUSD(address _to, uint _amountUSDWEI, uint _bonusPercentWEI) public onlyOwner crowdsaleState {     
         if (_bonusPercentWEI != 0) {
-            _amountUSDWEI = _amountUSDWEI * (1 + _bonusPercentWEI / 1 ether / 100);
+            _amountUSDWEI = (_amountUSDWEI * ( 1 ether + _bonusPercentWEI / 100)) / 1 ether;
         }       
         emitTokensFor(_to,  _amountUSDWEI);
     }
@@ -193,7 +193,7 @@ contract Token is Crowdsale, ERC20 {
 
     mapping(address => uint) internal balances;
     mapping(address => mapping(address => uint)) public allowed;
-    uint8 public constant decimals = 8;
+    uint8 public constant decimals = 17;
 
     function Token() payable Crowdsale() {}
 
@@ -273,7 +273,7 @@ contract MigratableToken is Token {
     }
 }
 
-contract SmartValleyToken is MigratableToken, MigrationAgent {
+contract SmartValleyToken is MigratableToken {
 
     string public constant symbol = "SVT";
     string public constant name = "SmartValley Token";  
@@ -293,5 +293,5 @@ contract SmartValleyToken is MigratableToken, MigrationAgent {
         balances[_address] -= _amount;
         totalSupply -= _amount;
         Transfer(_address, this, _amount);
-    }
+    }  
 }
