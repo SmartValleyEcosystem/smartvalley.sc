@@ -78,7 +78,7 @@ contract Crowdsale is Owned, Stateful {
 
     uint public etherPriceUSDWEI;
     address public beneficiary;
-    uint constant tokenPriceUSDWEI = 76923076923076900; 
+    uint constant tokenPriceUSDWEI = 100000000000000000; 
 
     struct Investor {
         uint amountTokens;     
@@ -121,13 +121,6 @@ contract Crowdsale is Owned, Stateful {
         investors[keyToMove].index = rowToDelete; 
         investorIndex.length--;    
         return rowToDelete;
-  }
-    
-
-    function() payable crowdsaleState {
-        uint valueWEI = msg.value;
-        uint valueUSDWEI = valueWEI * etherPriceUSDWEI / 1 ether;            
-        emitTokensFor(msg.sender, valueUSDWEI);
     }
 
     function depositUSD(address _to, uint _amountUSDWEI, uint _bonusPercentWEI) public onlyOwner crowdsaleState {     
@@ -193,7 +186,7 @@ contract Token is Crowdsale, ERC20 {
 
     mapping(address => uint) internal balances;
     mapping(address => mapping(address => uint)) public allowed;
-    uint8 public constant decimals = 17;
+    uint8 public constant decimals = 18;
 
     function Token() payable Crowdsale() {}
 
