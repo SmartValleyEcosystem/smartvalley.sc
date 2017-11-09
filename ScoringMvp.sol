@@ -26,7 +26,7 @@ contract Owned {
     }
 }
 
-contract ScorringMvp is Owned {
+contract ScoringMvp is Owned {
 
     mapping(address => Expert) public experts;
     address[] public expertIndex; 
@@ -43,7 +43,7 @@ contract ScorringMvp is Owned {
         ExpertType expertType; 
     }
 
-    function ScorringMvp() public {}
+    function ScoringMvp() public {}
 
     function isExpert(address _address) private constant returns(bool) {
         if (expertIndex.length == 0) {
