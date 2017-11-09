@@ -32,6 +32,7 @@ contract ScoringMvp is Owned {
     address[] public expertIndex; 
     
     enum ExpertType {
+        NotExpert,
         HR,
         Lawyer,       
         Analyst,
@@ -46,17 +47,17 @@ contract ScoringMvp is Owned {
     function ScoringMvp() public {}
 
     function isExpert(address _address) private constant returns(bool) {
-        if (expertIndex.length == 0) {
-             return false;
-        }
-        return (expertIndex[experts[_address].index] == _address);
+        return experts[_address].expertType != ExpertType.NotExpert;
     }
 
-    function insertExpert(ExpertType expertType) public returns(uint) {
-        require(!isExpert(msg.sender));    
-        experts[msg.sender].index = expertIndex.push(msg.sender) - 1;
-        experts[msg.sender].expertType = expertType;     
-        return expertIndex.length - 1;
+    function addOrUpdateExpert(ExpertType expertType) public returns(uint) {
+        Expert storage expert = experts[msg.sender];
+        if (!isExpert(msg.sender)) {
+            expert.index = expertIndex.push(msg.sender) - 1;
+        }
+
+        expert.expertType = expertType;     
+        return expert.index;
     }
     
     function deleteExpert(address _address) public onlyOwner returns(uint) {
