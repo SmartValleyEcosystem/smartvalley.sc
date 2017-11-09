@@ -60,6 +60,7 @@ contract ScoringMvp is Owned {
     }
     
     function deleteExpert(address _address) public onlyOwner returns(uint) {
+        require(!isExpert(_address));    
         expertIndex[experts[_address].index] = expertIndex[expertIndex.length-1];
         experts[expertIndex[expertIndex.length-1]].index = experts[_address].index; 
         expertIndex.length--;    
