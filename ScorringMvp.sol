@@ -30,27 +30,36 @@ contract ScorringMvp is Owned {
 
     mapping(address => Expert) public experts;
     address[] public expertIndex; 
+    
+    enum ExpertType {
+        HR,
+        Lawyer,       
+        Analyst,
+        TechSpec
+    }
 
     struct Expert {   
-        uint index; 
+        uint index;
+        ExpertType expertType; 
     }
 
     function ScorringMvp() public {}
 
-    function isExpert(address _address) private constant returns(bool isIndeed) {
+    function isExpert(address _address) private constant returns(bool) {
         if (expertIndex.length == 0) {
              return false;
         }
         return (expertIndex[experts[_address].index] == _address);
     }
 
-    function insertExpert() public returns(uint index) {
+    function insertExpert(ExpertType expertType) public returns(uint) {
         require(!isExpert(msg.sender));    
-        experts[msg.sender].index = expertIndex.push(msg.sender) - 1;       
+        experts[msg.sender].index = expertIndex.push(msg.sender) - 1;
+        experts[msg.sender].expertType = expertType;     
         return expertIndex.length - 1;
     }
     
-    function deleteExpert(address _address) public onlyOwner returns(uint index) {
+    function deleteExpert(address _address) public onlyOwner returns(uint) {
         expertIndex[experts[_address].index] = expertIndex[expertIndex.length-1];
         experts[expertIndex[expertIndex.length-1]].index = experts[_address].index; 
         expertIndex.length--;    
