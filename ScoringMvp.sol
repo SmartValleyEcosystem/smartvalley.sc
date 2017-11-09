@@ -51,6 +51,7 @@ contract ScoringMvp is Owned {
     }
 
     function addOrUpdateExpert(ExpertType expertType) public returns(uint) {
+        require(expertType != ExpertType.NotExpert);
         Expert storage expert = experts[msg.sender];
         if (!isExpert(msg.sender)) {
             expert.index = expertIndex.push(msg.sender) - 1;
