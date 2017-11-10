@@ -30,16 +30,16 @@ contract EtherManager is Owned {
 
     uint256 public weiAmountToGift = 1 ether;
 
-    mapping(address => bool) public receivers;
-    address[] public addresses;
+    mapping(address => bool) public receiversMap;
+    address[] public receivers;
 
     function EtherManager() public payable {}
 
     function giftEth (address _receiver) public onlyOwner returns(uint256) {
-        require(this.balance >= weiAmountToGift && receivers[_receiver] == false);
+        require(this.balance >= weiAmountToGift && receiversMap[_receiver] == false);
         _receiver.transfer(weiAmountToGift);
-        receivers[_receiver] = true;
-        addresses.push(_receiver);
+        receiversMap[_receiver] = true;
+        receivers.push(_receiver);
         return this.balance;
     }
 
