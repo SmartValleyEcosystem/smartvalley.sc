@@ -33,7 +33,7 @@ contract EthereumManager is Owned {
 
     mapping(address => bool) public addressesWithEth;
 
-    function EthereumManager() public payable {}
+    function EtherManager() public payable {}
 
     function sendEth (address _receiver) public onlyOwner returns(uint256) {
         var weiAmount = amount * WEI;
