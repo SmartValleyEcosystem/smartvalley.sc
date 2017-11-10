@@ -26,7 +26,7 @@ contract Owned {
     }
 }
 
-contract EthereumManager is Owned {
+contract EtherManager is Owned {
 
     uint256 constant WEI = 1000000000000000000;
     uint256 public amount = 1;
