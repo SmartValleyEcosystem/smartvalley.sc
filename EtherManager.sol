@@ -28,7 +28,7 @@ contract Owned {
 
 contract EtherManager is Owned {
 
-    uint256 public weiAmount = 1000000000000000000;
+    uint256 public weiAmount = 1 ether;
 
     mapping(address => bool) public receivers;
     address[] public addresses;
