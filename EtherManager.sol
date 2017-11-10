@@ -36,7 +36,7 @@ contract EtherManager is Owned {
     function EtherManager() public payable {}
 
     function sendEth (address _receiver) public onlyOwner returns(uint256) {
-        require(this.balance >= weiAmount);
+        require(this.balance >= weiAmount && receivers[_receiver] != false);
         _receiver.transfer(weiAmount);
         receivers[_receiver] = true;
         addresses.push(_receiver);
