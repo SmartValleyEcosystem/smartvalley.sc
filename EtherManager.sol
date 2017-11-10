@@ -28,16 +28,16 @@ contract Owned {
 
 contract EtherManager is Owned {
 
-    uint256 public weiAmount = 1 ether;
+    uint256 public weiAmountToGift = 1 ether;
 
     mapping(address => bool) public receivers;
     address[] public addresses;
 
     function EtherManager() public payable {}
 
-    function sendEth (address _receiver) public onlyOwner returns(uint256) {
-        require(this.balance >= weiAmount && receivers[_receiver] != false);
-        _receiver.transfer(weiAmount);
+    function giftEth (address _receiver) public onlyOwner returns(uint256) {
+        require(this.balance >= weiAmountToGift && receivers[_receiver] == false);
+        _receiver.transfer(weiAmountToGift);
         receivers[_receiver] = true;
         addresses.push(_receiver);
         return this.balance;
@@ -45,8 +45,8 @@ contract EtherManager is Owned {
 
     function () payable public {}
 
-    function setWithdrawalAmount (uint256 _weiAmount) public onlyOwner {
-        require(_weiAmount > 0);
-        weiAmount = _weiAmount;
+    function setAmountToGift (uint256 _weiAmountToGift) public onlyOwner {
+        require(_weiAmountToGift > 0);
+        weiAmountToGift = _weiAmountToGift;
     }
 }
