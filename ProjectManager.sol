@@ -6,10 +6,11 @@ import "./Project.sol";
 contract ProjectManager is Owned {
 
     address[] public projects;
+    mapping(uint => address) projectsMap;
 
-    function addProject(address _creator, string _applicationHash, string _name) external returns(address) {
-        Project project = new Project(_creator, _applicationHash, _name);
+    function addProject(uint _id, address _author, string _name) external {
+        Project project = new Project(_author, _name);
         projects.push(project);
-        return project;
+        projectsMap[_id] = project;
     }
 }
