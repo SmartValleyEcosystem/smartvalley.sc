@@ -6,9 +6,9 @@ import "./Project.sol";
 contract ProjectManager is Owned {
 
     address[] public projects;
-    mapping(uint => address) projectsMap;
+    mapping(bytes32 => address) projectsMap;
 
-    function addProject(uint _externalId, string _name) external {
+    function addProject(bytes32 _externalId, string _name) external {
         Project project = new Project(msg.sender, _name);
         projects.push(project);
         projectsMap[_externalId] = project;
