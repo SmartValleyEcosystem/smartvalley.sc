@@ -8,9 +8,9 @@ contract ProjectManager is Owned {
     address[] public projects;
     mapping(uint => address) projectsMap;
 
-    function addProject(uint _id, address _author, string _name) external {
-        Project project = new Project(_author, _name);
+    function addProject(uint _externalId, string _name) external {
+        Project project = new Project(msg.sender, _name);
         projects.push(project);
-        projectsMap[_id] = project;
+        projectsMap[_externalId] = project;
     }
 }
