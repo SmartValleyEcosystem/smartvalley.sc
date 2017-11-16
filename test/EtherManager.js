@@ -15,11 +15,11 @@ contract('EtherManager', function(accounts) {
     
     it("setAmountToGift -> get weiAmountToGift : result - 1e+18 wei", async function() {                
         var actual_val = await manager.weiAmountToGift();
-        assert.equal(actual_val, 1000000000000000000, 'amountToGift is not equal 1e+18 wei, actual: ' + actual_val);        
+        assert.equal(actual_val, web3.toWei(1, 'ether'), 'amountToGift is not equal 1e+18 wei, actual: ' + actual_val);        
     });
 
     it("setAmountToGift -> set 5e+18 wei and get weiAmountToGift : result - 5e+18 wei ", async function() {
-        var newVal = 5000000000000000000;
+        var newVal = web3.toWei(5, 'ether');
         await manager.setAmountToGift(newVal);   
 
         var actual_val = await manager.weiAmountToGift();
@@ -39,11 +39,11 @@ contract('EtherManager', function(accounts) {
 
         var actual_val = await manager.weiAmountToGift();
         assert.equal(error, 'VM Exception while processing transaction: revert', 'revert error must be returned');            
-        assert.equal(actual_val, 1000000000000000000, 'amountToGift is not equal 1e+18 wei, actual: ' + actual_val);
+        assert.equal(actual_val, web3.toWei(1, 'ether'), 'amountToGift is not equal 1e+18 wei, actual: ' + actual_val);
     });
 
     it("setAmountToGift -> try set wei from not Owner, catch ecxeption and get weiAmountToGift : result - 1e+18 wei", async function() {
-        var newVal = 3000000000000000000;
+        var newVal = web3.toWei(3, 'ether');
         var error = '';
         
         try{
@@ -55,7 +55,7 @@ contract('EtherManager', function(accounts) {
         
 
         assert.equal(error, 'VM Exception while processing transaction: revert', 'revert error must be returned');            
-        assert.equal(await manager.weiAmountToGift(), 1000000000000000000);
+        assert.equal(await manager.weiAmountToGift(), web3.toWei(1, 'ether'));
     });
 
     it("giftEth -> gift 1 ether to account #4 : balance decreased, account #4 added in receiversMap and receivers", async function(){        
@@ -65,7 +65,7 @@ contract('EtherManager', function(accounts) {
         await manager.giftEth(accounts[4]);        
 
         var new_balance = web3.eth.getBalance(manager.address);
-        assert.equal(new_balance, actual_balance - 1000000000000000000, 'contract balancr in not decreased: expected ' + actual_balance + ', actual ' + new_balance);                
+        assert.equal(new_balance, actual_balance - web3.toWei(1, 'ether'), 'contract balancr in not decreased: expected ' + actual_balance + ', actual ' + new_balance);                
         assert.isTrue(await manager.receiversMap(accounts[4]), 'receiversMap is not contain \'account #4 => true\'');
         assert.equal(await manager.receivers(0), accounts[4], 'receivers array is not contain \'account #4\'');        
     });
