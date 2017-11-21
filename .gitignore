@@ -2,3 +2,7 @@
 .vs/
 
 bin/
+
+build/
+
+backup/
