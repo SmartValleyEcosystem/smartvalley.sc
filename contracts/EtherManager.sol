@@ -49,4 +49,8 @@ contract EtherManager is Owned {
         require(_weiAmountToGift > 0);
         weiAmountToGift = _weiAmountToGift;
     }
+
+    function withdrawEth() external onlyOwner {
+        owner.transfer(this.balance);
+    }
 }
