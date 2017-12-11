@@ -17,8 +17,7 @@ contract Minter is Owned {
 
     function giftTokens () public {
         require(addressCanGiftTokens());
-        var dec = token.decimals;
-        token.mintTokens(msg.sender, amountToGift * 10 ** dec);
+        token.mintTokens(msg.sender, amountToGift * (10 ** uint(token.decimals())));
         receiversDateMap[msg.sender] = now;
     }
 
