@@ -11,22 +11,26 @@ contract Minter is Owned {
 
     SmartValleyToken private token;
 
-    function Minter(address tokenAddress) public payable {
-        token = SmartValleyToken(tokenAddress);
+    function Minter(address _tokenAddress) public payable {
+        token = SmartValleyToken(_tokenAddress);
     }
 
-    function giftTokens () public returns(uint256) {
-        require(receiversDateMap[msg.sender] == 0 || now - receiversDateMap[msg.sender] >= 3 days);
-        token.mintTokens(msg.sender, amountToGift);
+    function giftTokens () public {
+        require(addressCanGiftTokens());
+        var dec = token.decimals;
+        token.mintTokens(msg.sender, amountToGift * 10 ** dec);
         receiversDateMap[msg.sender] = now;
-        return token.balanceOf(msg.sender);
+    }
+
+    function addressCanGiftTokens() view public returns(bool) {
+        return receiversDateMap[msg.sender] == 0 || now - receiversDateMap[msg.sender] >= 3 days;
     }
 
     function () payable public {}
     
-    function setTokenAddress (address tokenAddress) public onlyOwner {
-        require(token != tokenAddress);
-        token = SmartValleyToken(tokenAddress);
+    function setTokenAddress (address _tokenAddress) public onlyOwner {
+        require(token != _tokenAddress && _tokenAddress != 0);
+        token = SmartValleyToken(_tokenAddress);
     }
 
     function setAmountToGift (uint256 _amountToGift) public onlyOwner {
