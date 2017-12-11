@@ -12,14 +12,14 @@ contract Minter is Owned {
 
     function Minter() public payable {}
 
-    function giftTokens (address _receiver) public onlyOwner returns(uint256) {
-        require(receiversDateMap[_receiver] == 0 || now - receiversDateMap[_receiver] >= 3 days);
-        if (receiversDateMap[_receiver] == 0) {
-        receivers.push(_receiver);
+    function giftTokens () public returns(uint256) {
+        require(receiversDateMap[msg.sender] == 0 || now - receiversDateMap[msg.sender] >= 3 days);
+        if (receiversDateMap[msg.sender] == 0) {
+        receivers.push(msg.sender);
         }
-        receiversBalanceMap[_receiver] += amountToGift;
-        receiversDateMap[_receiver] = now;
-        return receiversBalanceMap[_receiver];
+        receiversBalanceMap[msg.sender] += amountToGift;
+        receiversDateMap[msg.sender] = now;
+        return receiversBalanceMap[msg.sender];
     }
 
     function () payable public {}
