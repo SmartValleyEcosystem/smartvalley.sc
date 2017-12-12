@@ -11,7 +11,7 @@ contract Minter is Owned {
 
     SmartValleyToken private token;
 
-    function Minter(address _tokenAddress) public payable {
+    function Minter(address _tokenAddress) public {
         token = SmartValleyToken(_tokenAddress);
     }
 
@@ -25,8 +25,6 @@ contract Minter is Owned {
         return receiversDateMap[msg.sender] == 0 || now - receiversDateMap[msg.sender] >= 3 days;
     }
 
-    function () payable public {}
-    
     function setTokenAddress (address _tokenAddress) public onlyOwner {
         require(token != _tokenAddress && _tokenAddress != 0);
         token = SmartValleyToken(_tokenAddress);
