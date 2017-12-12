@@ -16,13 +16,13 @@ contract Minter is Owned {
     }
 
     function giftTokens () public {
-        require(addressCanGiftTokens());
+        require(addressCanGiftTokens(msg.sender));
         token.mintTokens(msg.sender, amountToGift * (10 ** uint(token.decimals())));
         receiversDateMap[msg.sender] = now;
     }
 
-    function addressCanGiftTokens() view public returns(bool) {
-        return receiversDateMap[msg.sender] == 0 || now - receiversDateMap[msg.sender] >= 3 days;
+    function addressCanGiftTokens(address _receiverAddress) view public returns(bool) {
+        return receiversDateMap[_receiverAddress] == 0 || now - receiversDateMap[_receiverAddress] >= 3 days;
     }
 
     function setTokenAddress (address _tokenAddress) public onlyOwner {
