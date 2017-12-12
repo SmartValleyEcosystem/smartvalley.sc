@@ -15,7 +15,7 @@ contract Minter is Owned {
         token = SmartValleyToken(_tokenAddress);
     }
 
-    function giftTokens () public {
+    function getTokens () public {
         require(addressCanGiftTokens(msg.sender));
         token.mintTokens(msg.sender, amountToGift * (10 ** uint(token.decimals())));
         receiversDateMap[msg.sender] = now;
