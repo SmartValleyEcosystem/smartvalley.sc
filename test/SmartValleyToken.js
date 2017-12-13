@@ -356,5 +356,5 @@ contract('SmartValleyToken', function(accounts) {
         assert.equal(transferedValue, amount, 'Invalid transfered value: ' + transferedValue);
         assert.equal(callCount, 1, 'Invalid call count: ' + callCount);
         assert.equal(balance, amount, 'Invalid balance: ' + balance);
-    });
+    });  
 });

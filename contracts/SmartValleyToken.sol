@@ -46,7 +46,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     modifier onlyKnownContracts(address _address) {
         require(knownContracts[_address] == true);
         _;
-    }
+    }   
 
     function setMinter(address _minter) public onlyOwner whileMintingAllowed {
         minter = _minter;
@@ -105,10 +105,14 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
             knownContract.transfered(_from, _value, new bytes32[](0));
         }
     }
+
+    function transferFromOrigin(address _to, uint _value) external onlyKnownContracts(msg.sender) {
+        transferInternal(tx.origin, _to, _value);
+    }
     
     function addKnownContract(address _address) external onlyOwner {
         knownContracts[_address] = true;
-    }
+    }  
 
     function removeKnownContract(address _address) external onlyOwner {
         delete knownContracts[_address];
