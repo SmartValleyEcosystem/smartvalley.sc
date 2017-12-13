@@ -9,24 +9,25 @@ contract Minter is Owned {
 
     mapping(address => uint) public receiversDateMap;
 
-    SmartValleyToken private token;
+    SmartValleyToken public token;
 
     function Minter(address _tokenAddress) public {
         token = SmartValleyToken(_tokenAddress);
     }
 
     function getTokens () public {
-        require(addresscanGetTokens(msg.sender));
+        require(canGetTokens(msg.sender));
         token.mintTokens(msg.sender, amountToGift * (10 ** uint(token.decimals())));
         receiversDateMap[msg.sender] = now;
     }
 
-    function addresscanGetTokens(address _receiverAddress) view public returns(bool) {
+    function canGetTokens(address _receiverAddress) view public returns(bool) {
+        require(_receiverAddress != address(0));
         return receiversDateMap[_receiverAddress] == 0 || now - receiversDateMap[_receiverAddress] >= 3 days;
     }
 
     function setTokenAddress (address _tokenAddress) public onlyOwner {
-        require(token != _tokenAddress && _tokenAddress != 0);
+        require(_tokenAddress != address(0) && token != _tokenAddress && _tokenAddress != 0);
         token = SmartValleyToken(_tokenAddress);
     }
 
