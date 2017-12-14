@@ -1,34 +1,37 @@
 var EtherManagerMock = artifacts.require('./mock/EtherManagerMock.sol');
 
-contract('EtherManager', function(accounts) {  
+contract('EtherManager test plan', function(accounts) {  
 
     let manager;
-    let owner;
+    let owner;    
 
-    beforeEach(async function() {        
-        owner = accounts[0];                
+    beforeEach('deploy contract', async function() {        
+        owner = accounts[9];                
 
         manager = await EtherManagerMock.new({
             from: owner,
-            value: web3.toWei(3, 'ether')
+            value: web3.toWei(10, 'ether')
         });                        
     });
 
-    
-    it("weiAmountToGift -> get default weiAmountToGift : result - 1e+18 wei", async function() {                
-        var actual_val = await manager.weiAmountToGift();
-        assert.equal(actual_val, web3.toWei(1, 'ether'), 'amountToGift is not equal 1e+18 wei, actual: ' + actual_val);
+    afterEach('sent ether back to owner', async function() {                
+        manager.withdrawEth({from: owner});
     });
 
-    it("setAmountToGift -> set 5e+18 wei and get weiAmountToGift : result - 5e+18 wei ", async function() {
+    it("amaountToGift: get default weiAmountToGift, result - 1e+18 wei", async function() {                
+        var actual_val = await manager.weiAmountToGift();
+        assert.equal(actual_val, web3.toWei(1, 'ether'), 'amountToGift is incorrect');
+    });
+
+    it("amaountToGift: set 5e+18 wei and get weiAmountToGift, result - 5e+18 wei ", async function() {
         var newVal = web3.toWei(5, 'ether');
         await manager.setAmountToGift(newVal, {from: owner});
 
         var actual_val = await manager.weiAmountToGift();
-        assert.equal(actual_val, newVal, 'amountToGift is not equal 5e+18 wei, actual: ' + actual_val);
-    });          
-
-    it("setAmountToGift -> set 0, catch ecxeption and get weiAmountToGift : result - 1e+18 wei", async function() {     
+        assert.equal(actual_val, newVal, 'amountToGift is incorrect');
+    });         
+    
+    it("amaountToGift: try set 0 wei, catch ecxeption and get weiAmountToGift, result - 1e+18 wei", async function() {     
         var newVal = web3.toWei(0, 'ether');   
         var error = null;        
         try{
@@ -41,10 +44,10 @@ contract('EtherManager', function(accounts) {
         var actual_val = await manager.weiAmountToGift();
 
         assert.notEqual(error, null, 'Error must be returned');
-        assert.equal(actual_val, web3.toWei(1, 'ether'), 'amountToGift is not equal 1e+18 wei, actual: ' + actual_val);
+        assert.equal(actual_val, web3.toWei(1, 'ether'), 'amountToGift is incorrect');
     });
 
-    it("setAmountToGift -> try set wei from not Owner, catch ecxeption and get weiAmountToGift : result - 1e+18 wei", async function() {
+    it("amaountToGift: try set wei from not Owner, catch ecxeption and get weiAmountToGift, result - 1e+18 wei", async function() {
         var newVal = web3.toWei(3, 'ether');
         var error = null;
         
@@ -59,22 +62,21 @@ contract('EtherManager', function(accounts) {
         assert.equal(await manager.weiAmountToGift(), web3.toWei(1, 'ether'));
     });
 
-    it("giftEth -> gift 1 ether to account #4 : balance decreased, account #4 added in receiversMap and receivers", async function(){        
+    it("giftEther: gift 1 ether to account #4, balance decreased, account #4 added in receiversMap and receivers", async function(){        
         var actual_balance = web3.eth.getBalance(manager.address);
         assert.isNotTrue(await manager.receiversMap(accounts[4]), 'receiversMap contain \'account #4 => true\'');
 
         await manager.giftEth(accounts[4], { from: owner });
 
-        var new_balance = web3.eth.getBalance(manager.address);
-
-        assert.equal(new_balance, actual_balance - web3.toWei(1, 'ether'), 'contract balancr in not decreased: expected ' + actual_balance + ', actual ' + new_balance);                
+        var new_balance = web3.eth.getBalance(manager.address);    
+        assert.equal(new_balance, actual_balance - web3.toWei(1, 'ether'), 'contract balance in not decreased');                
         assert.isTrue(await manager.receiversMap(accounts[4]), 'receiversMap is not contain \'account #4 => true\'');
         assert.equal(await manager.receivers(0), accounts[4], 'receivers array is not contain \'account #4\'');        
-    });
+    });  
 
-    it("giftEth -> try gift 1 ether to account #4 again : throw error, balance not changed", async function(){                        
+    it("giftEther: try gift 1 ether to account #4 again, catch ecxeption, balance not changed", async function(){                        
         await manager.giftEth(accounts[4], { from: owner });        
-        var actual_balance = web3.eth.getBalance(manager.address);
+        var actual_balance = (web3.eth.getBalance(manager.address)).toString();
         var error = null;
 
         try{
@@ -84,14 +86,14 @@ contract('EtherManager', function(accounts) {
             error = e.message;
         }  
         
-        var new_balance = web3.eth.getBalance(manager.address);
+        var new_balance = (web3.eth.getBalance(manager.address)).toString();
 
         assert.notEqual(error, null, 'Error must be returned');
-        assert.equal(new_balance + 0, actual_balance + 0, 'contract balance is changed: expected ' + actual_balance + ', actual ' + new_balance); //todo remove + 0 ???        
+        assert.equal(new_balance, actual_balance, 'contract balance is changed');
     });
 
-    it("giftEth -> try gift erher from not Owner : throw error, balance not changed", async function(){
-        var actual_balance = web3.eth.getBalance(manager.address);
+    it("giftEther: try gift erher from not Owner, catch ecxeption, balance not changed", async function(){
+        var actual_balance = (web3.eth.getBalance(manager.address)).toString();
         var error = null;
 
         try{
@@ -101,25 +103,62 @@ contract('EtherManager', function(accounts) {
             error = e.message;
         }
 
-        var new_balance = web3.eth.getBalance(manager.address);
+        var new_balance = (web3.eth.getBalance(manager.address)).toString();
         
         assert.notEqual(error, null, 'Error must be returned');
-        assert.equal(new_balance + 0, actual_balance + 0, 'contract balance is changed: expected ' + actual_balance + ', actual ' + new_balance); //todo remove + 0 ???  
+        assert.equal(new_balance, actual_balance, 'contract balance is changed');
         
     });
 
-    it("owner -> get default Owner : account #0 is owner ", async function(){
-        assert.equal(await manager.owner(), owner, 'account #0 is not owner');
+    it.only("withdrawEth: call from Owner, get all ether back to account #9", async function() {        
+        var bal_before = web3.eth.getBalance(owner);            
+        var gasPrice = 1 //gwei
+        var tx = await manager.withdrawEth({from: owner});                
+        const txfee = web3.toWei(tx.receipt.cumulativeGasUsed * gasPrice, 'gwei');
+
+        var bal_after = web3.eth.getBalance(owner);
+        var bal_cont = web3.eth.getBalance(manager.address);
+        var sum = bal_before.plus(txfee).plus(web3.toWei(10, 'ether')).toString();
+        assert.equal(bal_after.toString(), sum, 'owner balance is not increas on ' + (web3.toWei(10, 'ether') - txfee).toString());
+        assert.equal(bal_cont.toString(), 0, 'contract balance is not empty');
     });
 
-    it("changeOwner -> confirmOwner -> Owner call change owner, account #1 cofirm : account #1 is owner", async function(){
-        var new_owner_account_1 = accounts[1];        
+    it("withdrawEth: try call from other account, catch exception, balance not changed", async function() {
+        var not_owner = accounts[1];
+        var error = null;
+        var bal_before = web3.eth.getBalance(not_owner);
+
+        try {
+            await manager.withdrawEth({from: not_owner});
+        } catch(err) {
+            error = err.message;
+        }
+
+        var bal_after = web3.eth.getBalance(not_owner);
+        var bal_cont = web3.eth.getBalance(manager.address);
+        assert.notEqual(error, null, 'Error must be returned');
+        assert.equal(bal_after.toString(), bal_before.toString(), 'account #1 balance is changed on ' + (web3.fromWei(bal_after - bal_before, 'ether')).toString());
+        assert.equal(bal_cont.toString(), 10, 'contract balance is changed');
+    });
+    
+    it("owned: get default owner, account #9 is owner ", async function(){
+        assert.equal(await manager.owner(), owner, 'account #9 is not owner');
+    });
+
+    it("owned: owner call changeOwner, account #1 is newOwner", async function(){
+        var new_owner = accounts[1];            
         
-        await manager.changeOwner(new_owner_account_1, { from: owner });
+        await manager.changeOwner(new_owner, { from: owner });
         var newOwner = await manager.newOwner();
-        assert.equal(newOwner, new_owner_account_1, 'new owner is not account #1: actual ' + newOwner);
-        await manager.confirmOwner({from: new_owner_account_1});
-        assert.equal(await manager.owner(), new_owner_account_1, 'account #1 is not owner');
+        assert.equal(newOwner, new_owner, 'new owner is not account #1');            
     });
+
+    it("owned: owner call confirmOwner, account #1 is owner", async function(){
+        var new_owner = accounts[1];  
+        await manager.changeOwner(new_owner, { from: owner });
+
+        await manager.confirmOwner({from: new_owner});
+        assert.equal(await manager.owner(), new_owner, 'account #1 is not owner');
+    });  
     
 });
