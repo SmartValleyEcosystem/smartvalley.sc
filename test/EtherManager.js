@@ -110,16 +110,17 @@ contract('EtherManager test plan', function(accounts) {
         
     });
 
-    it.only("withdrawEth: call from Owner, get all ether back to account #9", async function() {        
+    it("withdrawEth: call from Owner, get all ether back to account #9", async function() {        
         var bal_before = web3.eth.getBalance(owner);            
-        var gasPrice = 1 //gwei
+        var gasPrice = 1 //in gwei
         var tx = await manager.withdrawEth({from: owner});                
         const txfee = web3.toWei(tx.receipt.cumulativeGasUsed * gasPrice, 'gwei');
 
         var bal_after = web3.eth.getBalance(owner);
         var bal_cont = web3.eth.getBalance(manager.address);
-        var sum = bal_before.plus(txfee).plus(web3.toWei(10, 'ether')).toString();
-        assert.equal(bal_after.toString(), sum, 'owner balance is not increas on ' + (web3.toWei(10, 'ether') - txfee).toString());
+        /*var sum = bal_before.plus(txfee).plus(web3.toWei(10, 'ether')).toString();
+        assert.equal(bal_after.toString(), sum, 'owner balance is not increas on ' + (web3.toWei(10, 'ether') - txfee).toString());*/
+        assert.isTrue(bal_after.minus(bal_before) > web3.toWei(9.9, 'ether'), 'account #9 balance not increased on 9.9 ether');
         assert.equal(bal_cont.toString(), 0, 'contract balance is not empty');
     });
 
@@ -137,8 +138,8 @@ contract('EtherManager test plan', function(accounts) {
         var bal_after = web3.eth.getBalance(not_owner);
         var bal_cont = web3.eth.getBalance(manager.address);
         assert.notEqual(error, null, 'Error must be returned');
-        assert.equal(bal_after.toString(), bal_before.toString(), 'account #1 balance is changed on ' + (web3.fromWei(bal_after - bal_before, 'ether')).toString());
-        assert.equal(bal_cont.toString(), 10, 'contract balance is changed');
+        assert.isTrue(bal_after < bal_before, 'account #1 balance increased');
+        assert.equal(bal_cont.toString(), web3.toWei(10, 'ether'), 'contract balance is changed');
     });
     
     it("owned: get default owner, account #9 is owner ", async function(){
