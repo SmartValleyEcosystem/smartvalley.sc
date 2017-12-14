@@ -1,6 +1,6 @@
-var SmartValleyTokenMigrator = artifacts.require("./SmartValleyTokenMigrator.sol");
-var SmartValleyTokenMock = artifacts.require("./SmartValleyTokenMock.sol");
-var KnownContractMock = artifacts.require("./KnownContractMock.sol");
+var SmartValleyTokenMigrator = artifacts.require("../conctacts/mock/SmartValleyTokenMigrator.sol");
+var SmartValleyTokenMock = artifacts.require("../conctacts/mock/SmartValleyTokenMock.sol");
+var KnownContractMock = artifacts.require("../conctacts/mock/KnownContractMock.sol");
 
 contract('SmartValleyToken', function(accounts) {
 

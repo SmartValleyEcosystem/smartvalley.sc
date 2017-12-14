@@ -1,6 +1,5 @@
 pragma solidity ^ 0.4.18;
-
-import "../contracts/ProjectManager.sol";
+import "../ProjectManager.sol";
 
 contract ProjectManagerMock  is ProjectManager {  
     

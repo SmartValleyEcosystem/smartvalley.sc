@@ -1,5 +1,5 @@
 pragma solidity ^ 0.4.18;
-import "../Contracts/KnownContractInterface.sol";
+import "../KnownContractInterface.sol";
 
 contract KnownContractMock is KnownContract {
     

@@ -1,6 +1,6 @@
- pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.18;
 
-import "../contracts/MigrationAgentInterface.sol";
+import "./MigrationAgentInterface.sol";
 
 contract SmartValleyTokenMigrator {
     function migrate(address _tokenHolder, address _to, uint256 _amount) public {

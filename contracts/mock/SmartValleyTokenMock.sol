@@ -1,6 +1,6 @@
 pragma solidity ^ 0.4.18;
 
-import "../contracts/SmartValleyToken.sol";
+import "../SmartValleyToken.sol";
 
 contract SmartValleyTokenMock is SmartValleyToken {
     function SmartValleyTokenMock(address _account, uint256 _initialbalance) public {
