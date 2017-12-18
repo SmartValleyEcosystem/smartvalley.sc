@@ -1,6 +1,6 @@
-var ProjectManagerMock = artifacts.require('./ProjectManagerMock.sol');
-var ProjectMock = artifacts.require('./ProjectMock.sol');
-var SmartValleyTokenMock = artifacts.require("./SmartValleyTokenMock.sol");
+var ProjectManagerMock = artifacts.require('./mock/ProjectManagerMock.sol');
+var ProjectMock = artifacts.require('./mock/ProjectMock.sol');
+var SmartValleyTokenMock = artifacts.require("./mock/SmartValleyTokenMock.sol");
 
 contract('ProjectManager', async function(accounts) {
     

@@ -1,4 +1,4 @@
-var ProjectMock = artifacts.require('./ProjectMock.sol');
+var ProjectMock = artifacts.require('./mock/ProjectMock.sol');
 
 contract('Project', async function (accounts) {
     let project;

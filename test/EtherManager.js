@@ -14,7 +14,7 @@ contract('EtherManager test plan', function(accounts) {
         });                        
     });
 
-    afterEach('sent ether back to owner', async function() {                
+    afterEach('sent ether back to owner', async function() {
         manager.withdrawEth({from: owner});
     });
 
