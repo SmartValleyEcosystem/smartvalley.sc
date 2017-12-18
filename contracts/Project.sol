@@ -1,6 +1,7 @@
 pragma solidity ^ 0.4.18;
 
 import "./Owned.sol";
+import "./SmartValleyToken.sol";
 
 contract Project is Owned {
     struct Estimate {
@@ -17,17 +18,21 @@ contract Project is Owned {
     bool public isScored;
     uint public score;
     Estimate[] public estimates;
-    mapping(uint => uint) public areaSubmissionsCounters;
+    mapping(uint => uint) public areaSubmissionsCounters;   
     mapping(uint => mapping(address => bool)) public expertsByArea;
     uint public submissionsCount;
+    SmartValleyToken public svt;
+    uint public estimateRewardWEI;
 
-    function Project(address _author, string _name) public {
+    function Project(address _author, string _name, address _svtAddress, uint _estimateRewardWEI) public {
         author = _author;
         name = _name;
+        svt = SmartValleyToken(_svtAddress);
+        estimateRewardWEI = _estimateRewardWEI;    
     }
 
-    function submitEstimates(uint _expertiseArea, uint[] _questionIds, uint[] _scores, bytes32[] _commentHashes) public {
-        require(!isScored);
+    function submitEstimates(uint _expertiseArea, uint[] _questionIds, uint[] _scores, bytes32[] _commentHashes) public {       
+        require(!isScored);    
         require(!expertsByArea[_expertiseArea][msg.sender]);
         require(areaSubmissionsCounters[_expertiseArea] < 3);
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
@@ -35,6 +40,8 @@ contract Project is Owned {
         expertsByArea[_expertiseArea][msg.sender] = true;
         areaSubmissionsCounters[_expertiseArea]++;
         submissionsCount++;
+
+        svt.transfer(msg.sender, estimateRewardWEI);
 
         for (uint i = 0; i < _questionIds.length; i++) {
             estimates.push(Estimate(_questionIds[i], msg.sender, _scores[i], _commentHashes[i]));

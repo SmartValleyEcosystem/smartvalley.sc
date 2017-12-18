@@ -16,7 +16,11 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     mapping(address => bool) public migratedAddresses;
     mapping(address => bool) public knownContracts;
     
-    bool public isTransferAllowed = false;
+    /*==========*/
+    //TODO Change to false on production.
+    bool public isTransferAllowed = true;
+    /*==========*/
+    
     bool public isMintingAllowed = true;
 
     modifier onlyMinter {
