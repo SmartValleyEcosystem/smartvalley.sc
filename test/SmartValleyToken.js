@@ -13,7 +13,6 @@ contract('SmartValleyToken', function(accounts) {
         token = await SmartValleyTokenMock.new(owner, amount, {from: owner});
     });
 
-    
     it("Should mint tokens", async function() {
         await token.setMinter(accounts[1], {from: owner});
         await token.mintTokens(accounts[0], amount, {from: accounts[1]});
@@ -176,26 +175,28 @@ contract('SmartValleyToken', function(accounts) {
         assert.equal(balance, amount, 'Balance should be equal to 1 ether, actual: ' + balance);
         assert.equal(totalSupply, amount*2, 'TotalSupply should be equal to 1 ether, actual: ' + totalSupply);
     });
-    
-    it("Should block transfer while minting allowed", async function() {
-        
-        let initialBalance = 255;
-        let tokenMock = await SmartValleyTokenMock.new(accounts[0], initialBalance);
 
-        let error = null;
-        try {
-            await tokenMock.transfer(accounts[1], 100);
-        } catch (e){
-            error = e;
-        }
-        
-        let firstBalance = await tokenMock.balanceOf(accounts[0]);
-        let secondBalance = await tokenMock.balanceOf(accounts[1]);
+    // TODO isTransferAllowed is temporarily set to 'true'
 
-        assert.equal(firstBalance, initialBalance, 'Balance should be equal to ' + initialBalance +', actual: ' + firstBalance);
-        assert.equal(secondBalance, 0, 'Balance should be equal to 0, actual: ' + secondBalance);
-        assert.notEqual(error, null, 'Error should be thrown.');
-    });
+    // it("Should block transfer while minting allowed", async function() {
+        
+    //     let initialBalance = 255;
+    //     let tokenMock = await SmartValleyTokenMock.new(accounts[0], initialBalance);
+
+    //     let error = null;
+    //     try {
+    //         await tokenMock.transfer(accounts[1], 100);
+    //     } catch (e){
+    //         error = e;
+    //     }
+        
+    //     let firstBalance = await tokenMock.balanceOf(accounts[0]);
+    //     let secondBalance = await tokenMock.balanceOf(accounts[1]);
+
+    //     assert.equal(firstBalance, initialBalance, 'Balance should be equal to ' + initialBalance +', actual: ' + firstBalance);
+    //     assert.equal(secondBalance, 0, 'Balance should be equal to 0, actual: ' + secondBalance);
+    //     assert.notEqual(error, null, 'Error should be thrown.');
+    // });
     
     it("Should allow transfer when minting blocked", async function() {
         
@@ -306,25 +307,27 @@ contract('SmartValleyToken', function(accounts) {
         assert.equal(callCount, 0, 'Invalid call count: ' + callCount);
         assert.notEqual(error, null, 'Error should be thrown.');
     });
-    
-    it("transferToKnownContract should be available only when minter blocked", async function() {
-        let knownContract = await KnownContractMock.new();
 
-        await token.addKnownContract(knownContract.address, {from: owner});
+    // TODO isTransferAllowed is temporarily set to 'true'
+
+    // it("transferToKnownContract should be available only when minter blocked", async function() {
+    //     let knownContract = await KnownContractMock.new();
+
+    //     await token.addKnownContract(knownContract.address, {from: owner});
         
-        let error = null;
-        try {
-            await token.transferToKnownContract(knownContract.address, amount, [], {from: owner});
-        } catch (e){
-            error = e;
-        }
+    //     let error = null;
+    //     try {
+    //         await token.transferToKnownContract(knownContract.address, amount, [], {from: owner});
+    //     } catch (e){
+    //         error = e;
+    //     }
         
-        let transferedValue = await knownContract.transferedValue();
-        let callCount = await knownContract.callCount();
-        assert.equal(transferedValue, 0, 'Invalid transfered value: ' + transferedValue);
-        assert.equal(callCount, 0, 'Invalid call count: ' + callCount);
-        assert.notEqual(error, null, 'Error should be thrown.');
-    });
+    //     let transferedValue = await knownContract.transferedValue();
+    //     let callCount = await knownContract.callCount();
+    //     assert.equal(transferedValue, 0, 'Invalid transfered value: ' + transferedValue);
+    //     assert.equal(callCount, 0, 'Invalid call count: ' + callCount);
+    //     assert.notEqual(error, null, 'Error should be thrown.');
+    // });
 
     it("transferToKnownContract should transfer tokens", async function() {
         

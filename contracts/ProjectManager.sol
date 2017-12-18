@@ -11,16 +11,18 @@ contract ProjectManager is Owned {
     SmartValleyToken public svt;
     uint public projectCreationCostWEI;
     uint public estimateRewardWEI;
+    address scoringAddress;
 
-   function ProjectManager(address _svtAddress, uint _projectCreationCost, uint _estimateReward) public {       
-       setTokenAddress(_svtAddress);
-       setProjectCreationCost(_projectCreationCost);
-       setEstimateReward(_estimateReward);
+    function ProjectManager(address _svtAddress, uint _projectCreationCost, uint _estimateReward, address _scoringAddress) public {
+        setTokenAddress(_svtAddress);
+        setProjectCreationCost(_projectCreationCost);
+        setEstimateReward(_estimateReward);
+        setScoringAddress(_scoringAddress);
     }
 
-    function addProject(uint256 _externalId, string _name) external {    
+    function addProject(uint256 _externalId, string _name) external {
         require(svt.balanceOf(msg.sender) >= projectCreationCostWEI);
-        Project project = new Project(msg.sender, _name, svt, estimateRewardWEI);
+        Project project = new Project(msg.sender, _name, svt, estimateRewardWEI, scoringAddress);
         projects.push(project);
         projectsMap[_externalId] = project;
         svt.transferFromOrigin(project, projectCreationCostWEI);
@@ -37,5 +39,19 @@ contract ProjectManager is Owned {
 
     function setEstimateReward(uint _estimateReward) public onlyOwner {
         estimateRewardWEI = _estimateReward * (10 ** uint(svt.decimals()));
+    }
+
+    function setScoringAddress(address _scoringAddress) public onlyOwner {
+        require(_scoringAddress != 0);
+        scoringAddress = _scoringAddress;
+    }
+
+    function updateProjectsScoringAddress(uint startIndex, uint count) public onlyOwner {
+        require(startIndex + count <= projects.length);
+
+        for (var i = startIndex; i < startIndex + count; i++) {
+            var project = Project(projects[i]);
+            project.setScoringAddress(scoringAddress);
+        }
     }
 }
