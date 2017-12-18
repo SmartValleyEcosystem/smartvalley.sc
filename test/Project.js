@@ -1,19 +1,30 @@
 var ProjectMock = artifacts.require('./mock/ProjectMock.sol');
+var SmartValleyTokenMock = artifacts.require("./mock/SmartValleyTokenMock.sol");
 
 contract('Project', async function (accounts) {
     let project;
+    let token;
     let owner;
+    let scoring;
+    let amount = 120 * (10 ** 18);
+    let tokensAmount = 120 * (10 ** 18);
+    let reward = 10 * (10 ** 18);
 
     beforeEach(async function () {
         owner = accounts[9];
-        project = await ProjectMock.new({ from: owner });
+        scoring = accounts[8];
+        token = await SmartValleyTokenMock.new(owner, amount, { from: owner });
+        project = await ProjectMock.new(token.address, scoring, { from: owner });
+
+        await token.setMinter(owner, {from: owner});
+        await token.mintTokens(project.address, tokensAmount, {from: owner});
     });
 
     it('Initial state should be correct', async function () {
         assert.equal(await project.isScored(), false);
         assert.equal(await project.score(), 0);
         assert.equal(await project.submissionsCount(), 0);
-        assert.equal(await project.getEstimatesCount(), 0);
+        assert.equal((await project.getEstimates())[0].length, 0);
         assert.equal(await project.areaSubmissionsCounters(1), 0);
         assert.equal(await project.areaSubmissionsCounters(2), 0);
         assert.equal(await project.areaSubmissionsCounters(3), 0);
@@ -26,10 +37,10 @@ contract('Project', async function (accounts) {
         var scores = [10, 5, 0];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3")];
 
-        await project.submitEstimates(area, questions, scores, commentHashes);
+        await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
 
         assert.equal(await project.submissionsCount(), 1);
-        assert.equal(await project.getEstimatesCount(), scores.length);
+        assert.equal((await project.getEstimates())[0].length, scores.length);
         assert.equal(await project.areaSubmissionsCounters(area), 1);
         assert.equal(await project.isScored(), false);
     });
@@ -40,11 +51,11 @@ contract('Project', async function (accounts) {
         var scores = [10, 5, 0];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3")];
 
-        await project.submitEstimates(area, questions, scores, commentHashes);
+        await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
 
         var errorMessage = null;
         try {
-            await project.submitEstimates(area, questions, scores, commentHashes);
+            await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
         } catch (error) {
             errorMessage = error.message;
         }
@@ -59,11 +70,11 @@ contract('Project', async function (accounts) {
         var scores = [10, 5, 0];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3")];
 
-        await project.submitEstimates(area1, questions, scores, commentHashes);
-        await project.submitEstimates(area2, questions, scores, commentHashes);
+        await project.submitEstimates(accounts[0], area1, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[0], area2, questions, scores, commentHashes, {from: scoring});
 
         assert.equal(await project.submissionsCount(), 2);
-        assert.equal(await project.getEstimatesCount(), scores.length * 2);
+        assert.equal((await project.getEstimates())[0].length, scores.length * 2);
         assert.equal(await project.areaSubmissionsCounters(area1), 1);
         assert.equal(await project.areaSubmissionsCounters(area2), 1);
 
@@ -76,13 +87,13 @@ contract('Project', async function (accounts) {
         var scores = [10, 5, 0];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3")];
 
-        await project.submitEstimates(area, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(area, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(area, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], area, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], area, questions, scores, commentHashes, {from: scoring});
 
         var errorMessage = null;
         try {
-            await project.submitEstimates(area, questions, scores, commentHashes, { from: accounts[3] });
+            await project.submitEstimates(accounts[3], area, questions, scores, commentHashes, {from: scoring});
         } catch (error) {
             errorMessage = error.message;
         }
@@ -98,7 +109,7 @@ contract('Project', async function (accounts) {
 
         var errorMessage = null;
         try {
-            await project.submitEstimates(area, questions, scores, commentHashes);
+            await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
         } catch (error) {
             errorMessage = error.message;
         }
@@ -114,7 +125,7 @@ contract('Project', async function (accounts) {
 
         var errorMessage = null;
         try {
-            await project.submitEstimates(area, questions, scores, commentHashes);
+            await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
         } catch (error) {
             errorMessage = error.message;
         }
@@ -130,7 +141,7 @@ contract('Project', async function (accounts) {
 
         var errorMessage = null;
         try {
-            await project.submitEstimates(area, questions, scores, commentHashes);
+            await project.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoring});
         } catch (error) {
             errorMessage = error.message;
         }
@@ -144,26 +155,26 @@ contract('Project', async function (accounts) {
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3"), web3.sha3("qqq4")];
         var expectedScore = (scores.reduce((a, b) => a + b, 0)) * 12 / 3;
 
-        await project.submitEstimates(1, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(1, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(1, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 1, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 1, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 1, questions, scores, commentHashes, {from: scoring});
 
-        await project.submitEstimates(2, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(2, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(2, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 2, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 2, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 2, questions, scores, commentHashes, {from: scoring});
 
-        await project.submitEstimates(3, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(3, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(3, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 3, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 3, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 3, questions, scores, commentHashes, {from: scoring});
 
-        await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 4, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 4, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 4, questions, scores, commentHashes, {from: scoring});
 
         assert.equal(await project.score(), expectedScore);
         assert.equal(await project.isScored(), true);
         assert.equal(await project.submissionsCount(), 12);
-        assert.equal(await project.getEstimatesCount(), scores.length * 12);
+        assert.equal((await project.getEstimates())[0].length, scores.length * 12);
         assert.equal(await project.areaSubmissionsCounters(1), 3);
         assert.equal(await project.areaSubmissionsCounters(2), 3);
         assert.equal(await project.areaSubmissionsCounters(3), 3);
@@ -175,25 +186,25 @@ contract('Project', async function (accounts) {
         var scores = [4, 5, 6, 7];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3"), web3.sha3("qqq4")];
 
-        await project.submitEstimates(1, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(1, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(1, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 1, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 1, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 1, questions, scores, commentHashes, {from: scoring});
 
-        await project.submitEstimates(2, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(2, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(2, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 2, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 2, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 2, questions, scores, commentHashes, {from: scoring});
 
-        await project.submitEstimates(3, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(3, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(3, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 3, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 3, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 3, questions, scores, commentHashes, {from: scoring});
 
-        await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[0] });
-        await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[1] });
-        await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[2] });
+        await project.submitEstimates(accounts[0], 4, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[1], 4, questions, scores, commentHashes, {from: scoring});
+        await project.submitEstimates(accounts[2], 4, questions, scores, commentHashes, {from: scoring});
 
         var errorMessage = null;
         try {
-            await project.submitEstimates(4, questions, scores, commentHashes, { from: accounts[3] });
+            await project.submitEstimates(accounts[3], 4, questions, scores, commentHashes, {from: scoring});
         } catch (error) {
             errorMessage = error.message;
         }
@@ -206,18 +217,20 @@ contract('Project', async function (accounts) {
         var expectedScores = [4, 5, 6, 7];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3"), web3.sha3("qqq4")];
 
-        await project.submitEstimates(1, expectedQuestions, expectedScores, commentHashes);
+        await project.submitEstimates(accounts[3], 1, expectedQuestions, expectedScores, commentHashes, {from: scoring});
 
-        var estimatesCount = await project.getEstimatesCount();
+        var estimatesCount = (await project.getEstimates())[0].length;
         assert.equal(estimatesCount, expectedQuestions.length);
 
         var estimates = await project.getEstimates();
 
         var questions = estimates[0];
         var scores = estimates[1];
+        var experts = estimates[2];
         for (let i = 0; i < estimatesCount; i++) {
             assert.equal(questions[i], expectedQuestions[i]);
             assert.equal(scores[i], expectedScores[i]);
+            assert.equal(experts[i], accounts[3]);
         }
     });
 });
