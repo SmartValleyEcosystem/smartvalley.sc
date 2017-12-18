@@ -10,7 +10,7 @@ contract Scoring is Owned {
     }
 
     mapping(uint => mapping(uint => Question)) public questionsByArea;
-    mapping(address => mapping(uint => address[])) public scoredProjectsByArea;
+    mapping(address => mapping(uint => mapping(address => bool))) public scoredProjectsByArea;
 
     function submitEstimates(address _projectAddress, uint _expertiseArea, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
@@ -21,11 +21,9 @@ contract Scoring is Owned {
             require(_scores[i] <= question.maxScore && _scores[i] >= question.minScore);
         }
 
-        for (uint j = 0; j < scoredProjectsByArea[msg.sender][_expertiseArea].length; j++) {
-            require(scoredProjectsByArea[msg.sender][_expertiseArea][j] != _projectAddress);
-        }
+        require(!scoredProjectsByArea[msg.sender][_expertiseArea][_projectAddress]);
 
-        scoredProjectsByArea[msg.sender][_expertiseArea].push(_projectAddress);
+        scoredProjectsByArea[msg.sender][_expertiseArea][_projectAddress] = true;
 
         Project project = Project(_projectAddress);
         project.submitEstimates(msg.sender, _expertiseArea, _questionIds, _scores, _commentHashes);
@@ -37,9 +35,5 @@ contract Scoring is Owned {
         for (uint i = 0; i < _questionIds.length; i++) {
             questionsByArea[_expertiseAreas[i]][_questionIds[i]] = Question(_minScores[i], _maxScores[i]);
         }
-    }
-
-    function getScoredProjects(uint _expertiseArea, address _expertAddress) external view returns(address[] _projects) {
-        _projects = scoredProjectsByArea[_expertAddress][_expertiseArea];
     }
 }
