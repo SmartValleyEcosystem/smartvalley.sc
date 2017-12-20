@@ -7,7 +7,7 @@ contract Minter is Owned {
 
     uint256 public amountToGift = 1200;
 
-    uint public constant REQUIRED_DAYS_FOR_RECEIVE = 3;
+    uint public constant DAYS_INTERVAL_BETWEEN_RECEIVE = 3;
 
     mapping(address => uint) public receiversDateMap;
 
@@ -25,7 +25,7 @@ contract Minter is Owned {
 
     function canGetTokens(address _receiverAddress) view public returns(bool) {
         require(_receiverAddress != address(0));
-        return receiversDateMap[_receiverAddress] == 0 || now - receiversDateMap[_receiverAddress] >= REQUIRED_DAYS_FOR_RECEIVE * 1 days;
+        return receiversDateMap[_receiverAddress] == 0 || now - receiversDateMap[_receiverAddress] >= DAYS_INTERVAL_BETWEEN_RECEIVE * 1 days;
     }
 
     function setTokenAddress (address _tokenAddress) public onlyOwner {
