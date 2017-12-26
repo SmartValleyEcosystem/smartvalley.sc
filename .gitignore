@@ -6,3 +6,5 @@ bin/
 build/
 
 backup/
+
+node_modules/
