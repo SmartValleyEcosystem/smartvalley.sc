@@ -44,7 +44,7 @@ contract('Minter', async function(accounts) {
         assert.equal(web3.fromWei(balanceSVT, 'ether'), 1200, 'balance of tokens is not changed');
     });
 
-    it('getTokens: to get tokens again, after 3 days, balance increased', async function() {
+    it('getTokens: to get tokens again, on 3-thd day, balance increased', async function() {
         let receiver = accounts[2];
         await minter.getTokens({from: receiver});        
         await minter.putToDateMap(receiver, -3);
@@ -94,7 +94,7 @@ contract('Minter', async function(accounts) {
         assert.equal(web3.fromWei(balanceSVT, 'ether'), 1200, 'balance of tokens is not changed');
     });
 
-    it('canGetTokens: should can get, if not received earley', async function() {
+    it('canGetTokens: should can get, if not received early', async function() {
         let receiver = accounts[2];
         assert.isTrue(await minter.canGetTokens(receiver), 'account #2 can\'t get tokens...');
     });
