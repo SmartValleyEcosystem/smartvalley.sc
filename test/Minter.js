@@ -124,21 +124,21 @@ contract('Minter', async function(accounts) {
     });
 
     it('setAmountToGift: should can set amount to gift', async function() {
-        await minter.setAmountToGift(web3.toWei(300, 'ether'), {from: owner});
-        assert.equal(web3.fromWei(await minter.amountToGift(), 'ether'), 300, 'amountToGift not equal 300 tokens');
+        await minter.setAmountToGift(300, {from: owner});
+        assert.equal(await minter.amountToGift(), 300, 'amountToGift not equal 300 tokens');
     });
 
     it('setAmountToGift: should set amount only owner', async function() {
         let error = null;        
 
         try {
-            await minter.setAmountToGift(web3.toWei(300, 'ether'));
+            await minter.setAmountToGift(300);
         } catch (e) {
             error = e.message;
-        }        
+        }                
         
-        assert.notEqual(error, null, 'Error must be returned');
-        assert.equal(web3.fromWei(await minter.amountToGift(), 'ether'), 1200, 'amountToGift not changed');
+        assert.notEqual(error, null, 'Error must be returned');        
+        assert.equal(await minter.amountToGift(), 1200, 'amountToGift was changed');
     });
 
     [-100.123456789012345678, -100, 0, 0.000006789012345678, 100, 100.123456789012345678].forEach(async (v, idx, arr) => {
@@ -152,22 +152,22 @@ contract('Minter', async function(accounts) {
 
             if(value > 0) {
                 
-                await minter.setAmountToGift(web3.toWei(value, 'ether'), {from: owner});
-                assert.equal(web3.fromWei(await minter.amountToGift(), 'ether'), value, 'amountToGift not equal ' + value + ' tokens');       
+                await minter.setAmountToGift(value, {from: owner});
+                assert.equal(await minter.amountToGift(), value, 'amountToGift not equal ' + value + ' tokens');       
 
             } else {
 
                 try {
-                    await minter.setAmountToGift(web3.toWei(value, 'ether'), {from: owner});
-                    //console.log('amaount success ->', web3.fromWei(await minter.amountToGift(), 'ether'));
+                    await minter.setAmountToGift(value, {from: owner});
+                    console.log('amaount success ->', await minter.amountToGift());
                 } catch (e) {
                     error = e.message;
-                    //console.log('error ->', e)
-                    //console.log('amaount error ->', web3.fromWei(await minter.amountToGift(), 'ether'));
+                    console.log('error ->', e)
+                    console.log('amaount error ->', await minter.amountToGift());
                 }        
                 
                 assert.notEqual(error, null, 'Error must be returned');
-                assert.equal(web3.fromWei(await minter.amountToGift(), 'ether'), 1200, 'amountToGift not changed');
+                assert.equal(await minter.amountToGift(), 1200, 'amountToGift not changed');
             }            
         });
     }
