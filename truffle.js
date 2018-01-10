@@ -11,9 +11,7 @@ module.exports = {
     rinkeby: {
       host: "localhost",
       port: 8545,
-      network_id: "4",      
-      gasPrice: 1,
-      from: '0xcda3753490ce49535600d7299222b8493fe0d810'
+      network_id: 4      
     }
   }
 };
