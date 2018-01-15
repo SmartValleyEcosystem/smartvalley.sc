@@ -3,6 +3,7 @@ pragma solidity ^ 0.4.18;
 import "./StandardToken.sol";
 import "./MigrationAgentInterface.sol";
 import "./KnownContractInterface.sol";
+import "./BalanceFreezer.sol";
 
 contract SmartValleyToken is StandardToken, MigrationAgent {
 
@@ -12,6 +13,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
 
     address public minter;
     address public burner;
+    address public balanceFreezer;
     
     mapping(address => bool) public migratedAddresses;
     mapping(address => bool) public knownContracts;
@@ -49,6 +51,14 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     
     modifier onlyKnownContracts(address _address) {
         require(knownContracts[_address] == true);
+
+        _;
+    }
+
+    modifier hasEnoughTokens(address _from, uint _value) {
+        var frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);    
+        var forzenBalanceWithDecimals = frozenBalance * (10 ** uint(decimals));    
+        require(balances[_from] >= forzenBalanceWithDecimals && balances[_from] - forzenBalanceWithDecimals >= _value);
         _;
     }   
 
@@ -58,6 +68,10 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     
     function setBurner(address _burner) public onlyOwner {
         burner = _burner;
+    }
+
+    function setBalanceFreezer(address _balanceFreezer) public onlyOwner {
+        balanceFreezer = _balanceFreezer;
     }
     
     function mintTokens(address _to, uint256 _tokensAmountWithDecimals) public onlyMinter {
@@ -92,7 +106,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         migratedAddresses[_tokenHolder] = true;
     }
     
-    function transfer(address _to, uint _value) public whenTransferAllowed {
+    function transfer(address _to, uint _value) public whenTransferAllowed hasEnoughTokens(msg.sender, _value) {
         super.transfer(_to, _value);
         
         if (knownContracts[_to] == true) {
@@ -101,7 +115,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         }
     }
     
-    function transferFrom(address _from, address _to, uint _value) public whenTransferAllowed {
+    function transferFrom(address _from, address _to, uint _value) public whenTransferAllowed hasEnoughTokens(_from, _value) {
         super.transferFrom(_from, _to, _value);
 
         if (knownContracts[_to] == true) {
@@ -110,7 +124,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         }
     }
 
-    function transferFromOrigin(address _to, uint _value) external onlyKnownContracts(msg.sender) {
+    function transferFromOrigin(address _to, uint _value) external onlyKnownContracts(msg.sender) hasEnoughTokens(tx.origin, _value) {
         transferInternal(tx.origin, _to, _value);
     }
     
