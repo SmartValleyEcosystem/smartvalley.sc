@@ -17,7 +17,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     
     mapping(address => bool) public migratedAddresses;
     mapping(address => bool) public knownContracts;
-    
+
     /*==========*/
     //TODO Change to false on production.
     bool public isTransferAllowed = true;
@@ -55,10 +55,9 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         _;
     }
 
-    modifier hasEnoughTokens(address _from, uint _value) {
-        var frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);    
-        var forzenBalanceWithDecimals = frozenBalance * (10 ** uint(decimals));    
-        require(balances[_from] >= forzenBalanceWithDecimals && balances[_from] - forzenBalanceWithDecimals >= _value);
+    modifier hasEnoughTokens(address _from, uint _value) {      
+        var frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);                   
+        require(balances[_from] >= frozenBalance && balances[_from] - frozenBalance >= _value);
         _;
     }   
 
