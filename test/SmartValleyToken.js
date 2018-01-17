@@ -1,16 +1,20 @@
 var SmartValleyTokenMigrator = artifacts.require("./SmartValleyTokenMigrator.sol");
 var SmartValleyTokenMock = artifacts.require("./mock/SmartValleyTokenMock.sol");
 var KnownContractMock = artifacts.require("./mock/KnownContractMock.sol");
+var BalanceFreezerMock = artifacts.require("./mock/BalanceFreezerMock.sol");
 
 contract('SmartValleyToken', function(accounts) {
 
     let token;
     let owner;
+    let balanceFreezer;
     let amount = 100;
 
     beforeEach(async function(){
         owner = accounts[9];
         token = await SmartValleyTokenMock.new(owner, amount, {from: owner});
+        balanceFreezer = await BalanceFreezerMock.new();
+        await token.setBalanceFreezer(balanceFreezer.address, {from: owner});
     });
 
     it("Should mint tokens", async function() {
@@ -359,5 +363,21 @@ contract('SmartValleyToken', function(accounts) {
         assert.equal(transferedValue, amount, 'Invalid transfered value: ' + transferedValue);
         assert.equal(callCount, 1, 'Invalid call count: ' + callCount);
         assert.equal(balance, amount, 'Invalid balance: ' + balance);
-    });  
+    });
+
+    it("Shouldn't transfer frozen amount", async function() {
+        await balanceFreezer.freeze(50, 1, {from: owner});     
+    
+        let error = null;
+        try {           
+           await token.transfer(accounts[3], 100, {from: owner});
+        } catch (e){           
+            error = e;
+        }             
+        assert.notEqual(error, null, 'Error should be thrown.');
+
+        await token.transfer(accounts[3], 50, {from:owner}); 
+        let balance = await token.balanceOf(accounts[3]);          
+        assert.equal(balance, 50, 'Balance should be 50, actual: ' + balance);
+    });
 });

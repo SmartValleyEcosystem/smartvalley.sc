@@ -2,66 +2,61 @@ pragma solidity ^ 0.4.18;
 
 import "./Owned.sol";
 import "./BalanceFreezer.sol";
+import "./SmartValleyToken.sol";
 
-contract VotingSprint is Owned, BalanceFreezer {
+contract VotingSprint is Owned {
     
-    uint public startDate;                                                              //  Начальная дата спринта
-    uint public endDate;                                                                //  Конечная дата спринта
-    uint public durationDays;                                                           //  Длительность спринта в днях
-    uint public minumumPercentVotesForAccepted;                                         //  Минимальный процент голосов от общего числа голосов для принятия проекта
+    uint public startDate;                                                              
+    uint public endDate;                                                                
+    uint public acceptanceThreshold;  
+    uint public maximumScore;                                                     
 
-    mapping(address => bool) public acceptedProjectsMap;                                //  Принятые проекты
-    mapping(address => bool) public projectsForVoting;                                  //  Проекты в наличии в спринте
-    mapping(address => uint) public projectsVotings;                                    //  Общее количество голосов за каждый проект
-    //      projectAddress      investorAddress     tokensAmount      
-    mapping(address => mapping( address =>          uint)) projectsInvestorsAmountMap;  //  Взаимосвязь голосов инвесторов и проектов
+    BalanceFreezer public freezer;
+    SmartValleyToken public token;
+                                  
+    mapping(uint => bool) public projects;                                     
+    mapping(uint => uint) public projectVotes;                                 
+    mapping(address => uint) public investorTokenAmounts;
+    mapping(uint => mapping( address => uint)) public investorVotes;
 
-    uint public totalVotes;                                                             //  Максимальное количество голосов для проекта
+    function VotingSprint(uint _durationDays, uint256[] _projectsIds, address _token, address _freezer) public {
+        freezer = BalanceFreezer(_freezer);
+        token = SmartValleyToken(_token);
 
-    function VotingSprint(uint _durationDays) public {
-        require(_durationDays > 0);
         startDate = now;
-        durationDays = _durationDays;
-        endDate = startDate + durationDays * 1 days;
-    }
-    //  Добавить проект в спринт
-    function addProjectForVoting(address _externalId) public onlyOwner {
-        projectsForVoting[_externalId] = true;
-    }
-    //  Оставить оценку за проект
-    function submitVote(address _externalId, uint _value) public {
-        //Если значение больше нуля и проект есть в спринте
-        require(_value > 0 && projectsForVoting[_externalId]);
-        //замораживаем у пользователя токены на определенный срок
-        if (this.getFrozenAmount(tx.origin) < _value) {
-        this.freeze(_value, durationDays);
-        }
-        //Добавляем голос пользователя за проект
-        projectsInvestorsAmountMap[_externalId][tx.origin] += _value;
-        projectsVotings[_externalId] += _value;
-        //Проверяем набралось ли достаточное количество голосов для accepted
-        if (!acceptedProjectsMap[_externalId] && percent(projectsVotings[_externalId], totalVotes, 2) >= minumumPercentVotesForAccepted) {
-            acceptedProjectsMap[_externalId] = true;
+        endDate = startDate + _durationDays * 1 days;
+
+        for (uint i = 0; i < _projectsIds.length; i++) {
+            projects[_projectsIds[i]] = true;
         }
     }
-    //  Получение статуса проекта на голосовании
-    function isAccepted(address _externalId) public onlyOwner returns(bool) {
-        //  Проверяем есть ли вообще проект в спринте
-        require(projectsForVoting[_externalId]);
-        return acceptedProjectsMap[_externalId];
+
+    function submitVote(uint _externalId, uint _valueWithDecimals) external {
+        require(_valueWithDecimals > 0 && projects[_externalId] && investorVotes[_externalId][msg.sender] == 0 && token.getAvailableBalance(msg.sender) >= _valueWithDecimals);
+        
+        if (investorTokenAmounts[msg.sender] == 0) {
+            investorTokenAmounts[msg.sender] = _valueWithDecimals;
+            freezer.freeze(_valueWithDecimals, (endDate - startDate) / 1 days);
+            maximumScore += _valueWithDecimals;
+        }
+
+        investorVotes[_externalId][msg.sender] = _valueWithDecimals;
+        projectVotes[_externalId] += _valueWithDecimals;
     }
-    //  Задаем максимальное число голосов за проект в спринте
-    function setTotalVotes(uint _value) public onlyOwner returns(uint) {
-        require(_value > 0);
-        totalVotes = _value;
-        return totalVotes;
+
+    function isAccepted(uint _externalId) external constant returns(bool) {
+        require(projects[_externalId]);
+        return percent(projectVotes[_externalId], maximumScore, 2) >= acceptanceThreshold;
     }
-    //  Получает процент от числа
-    function percent(uint numerator, uint denominator, uint precision) private returns(uint quotient) {
-         // caution, check safe-to-multiply here
+
+    function percent(uint numerator, uint denominator, uint precision) private constant returns(uint quotient) {
         uint _numerator = numerator * 10 ** (precision+1);
-        // with rounding of last digit
         uint _quotient = ((_numerator / denominator) + 5) / 10;
         return ( _quotient);
-  }
+    }
+
+    function setAcceptanceThreshold (uint _value) external onlyOwner {
+        require(_value > 0);
+        acceptanceThreshold = _value;
+    }
 }
