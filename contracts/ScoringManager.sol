@@ -58,16 +58,25 @@ contract ScoringManager is Owned {
         }
     }
 
-    function updateScoringsManagerAddress(uint _startIndex, uint _count, address _newScoringManager) public onlyOwner {
+    function updateScoringsOwner(uint _startIndex, uint _count, address _newScoringManager) external {
         require(_startIndex + _count <= scorings.length && _newScoringManager != 0);
 
         for (var i = _startIndex; i < _startIndex + _count; i++) {
             var scoring = Scoring(scorings[i]);
-            scoring.setScoringManagerAddress(_newScoringManager);
+            scoring.changeOwner(_newScoringManager);
+        }
+    } 
+
+    function confirmScoringsOwner(uint _startIndex, uint _count) external {
+        require(_startIndex + _count <= scorings.length);
+
+        for (var i = _startIndex; i < _startIndex + _count; i++) {
+            var scoring = Scoring(scorings[i]);
+            scoring.confirmOwner();
         }
     }  
 
-    function updateScoringsSvtAddress(uint _startIndex, uint _count, address _newSvtAddress) public onlyOwner {
+    function updateScoringsSvtAddress(uint _startIndex, uint _count, address _newSvtAddress) external onlyOwner {
         require(_startIndex + _count <= scorings.length && _newSvtAddress != 0);
 
         for (var i = _startIndex; i < _startIndex + _count; i++) {
