@@ -81,6 +81,14 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         
         Transfer(this, _to, _tokensAmountWithDecimals);
     }
+
+    function getAvailableBalance (address _from) external constant returns(uint) { 
+        var frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);
+        if (balanceOf(_from) < frozenBalance) {
+            return 0;
+        }
+        return balanceOf(_from) - frozenBalance;
+    }
     
     function burnTokens(address _from, uint _tokensAmountWithDecimals) public onlyBurner {
         require(_tokensAmountWithDecimals > 0);
