@@ -6,8 +6,7 @@ contract('Minter', async function(accounts) {
     let token;
     let minter;
     let owner;
-    let amount = 120 * (10 ** 18);
-    let projectCreationCost = 120;
+    let amount = 120 * (10 ** 18);  
 
     beforeEach(async function() {
         owner = accounts[8];
@@ -158,12 +157,9 @@ contract('Minter', async function(accounts) {
             } else {
 
                 try {
-                    await minter.setAmountToGift(value, {from: owner});
-                    console.log('amaount success ->', await minter.amountToGift());
+                    await minter.setAmountToGift(value, {from: owner});                   
                 } catch (e) {
-                    error = e.message;
-                    console.log('error ->', e)
-                    console.log('amaount error ->', await minter.amountToGift());
+                    error = e.message;                  
                 }        
                 
                 assert.notEqual(error, null, 'Error must be returned');

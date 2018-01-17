@@ -1,6 +1,6 @@
 var EtherManagerMock = artifacts.require('./mock/EtherManagerMock.sol');
 
-contract('EtherManager test plan', function(accounts) {  
+contract('EtherManager', function(accounts) {  
 
     let manager;
     let owner;    
