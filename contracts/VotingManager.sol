@@ -28,7 +28,7 @@ contract VotingManager is Owned {
     }
 
     function createSprint(uint _durationDays) public onlyOwner {
-        require(_durationDays > 0 && lastSprint.endDate() <= now && projectsQueue.length > minimumProjectsCount);        
+        require(_durationDays > 0 && (lastSprint == address(0) || lastSprint.endDate() <= now) && projectsQueue.length >= minimumProjectsCount);        
         var newSprint = new VotingSprint(_durationDays, projectsQueue, token, freezer);
         sprints.push(newSprint);
         lastSprint = newSprint;

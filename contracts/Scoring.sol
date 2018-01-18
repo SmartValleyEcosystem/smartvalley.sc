@@ -14,7 +14,7 @@ contract Scoring is Owned {
     uint public constant REQUIRED_SUBMISSIONS_IN_AREA = 3;
     uint public constant REQUIRED_SUBMISSIONS = REQUIRED_SUBMISSIONS_IN_AREA * 4;
 
-    address public author;  
+    address public author;
     bool public isScored;
     int public score;
     Estimate[] public estimates;
@@ -22,11 +22,11 @@ contract Scoring is Owned {
     mapping(uint => mapping(address => bool)) public expertsByArea;
     uint public submissionsCount;
     SmartValleyToken public svt;
-    uint public estimateRewardWEI;   
+    uint public estimateRewardWEI;
 
     function Scoring(address _author, address _svtAddress, uint _estimateRewardWEI) public {
-        author = _author;        
-        setTokenAddress(_svtAddress);      
+        author = _author;
+        setTokenAddress(_svtAddress);
         estimateRewardWEI = _estimateRewardWEI;
     }    
 
