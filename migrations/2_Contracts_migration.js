@@ -27,7 +27,7 @@ module.exports = function(deployer) {
   })
   .then(function(tokenInstance) {
     token = tokenInstance;
-    return deployer.deploy(VotingManager, balanceFreeser.address, token.address);
+    return deployer.deploy(VotingManager, balanceFreeser.address, token.address, 2);
   })
   .then(function() {
     return deployer.deploy(Minter, token.address);
