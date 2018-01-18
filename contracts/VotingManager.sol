@@ -15,7 +15,6 @@ contract VotingManager is Owned {
     uint256[] public projectsQueue;
     
     function VotingManager(address _freezer, address _token) public {
-        require(freezer != address(0) && token != address(0));        
         freezer = BalanceFreezer(_freezer);
         token = SmartValleyToken(_token);
     }
