@@ -5,17 +5,17 @@ import "./BalanceFreezer.sol";
 import "./SmartValleyToken.sol";
 
 contract VotingSprint is Owned {
-    
-    uint public startDate;                                                              
-    uint public endDate;                                                                
-    uint public acceptanceThreshold;  
-    uint public maximumScore;                                                     
+
+    uint public startDate;
+    uint public endDate;
+    uint public acceptanceThreshold;
+    uint public maximumScore;
 
     BalanceFreezer public freezer;
     SmartValleyToken public token;
-                                  
-    mapping(uint => bool) public projects;                                     
-    mapping(uint => uint) public projectVotes;                                 
+
+    mapping(uint => bool) public projects;
+    mapping(uint => uint) public projectVotes;
     mapping(address => uint) public investorTokenAmounts;
     mapping(uint => mapping( address => uint)) public investorVotes;
 
@@ -33,7 +33,7 @@ contract VotingSprint is Owned {
 
     function submitVote(uint _externalId, uint _valueWithDecimals) external {
         require(_valueWithDecimals > 0 && projects[_externalId] && investorVotes[_externalId][msg.sender] == 0 && token.getAvailableBalance(msg.sender) >= _valueWithDecimals);
-        
+
         if (investorTokenAmounts[msg.sender] == 0) {
             investorTokenAmounts[msg.sender] = _valueWithDecimals;
             freezer.freeze(_valueWithDecimals, (endDate - startDate) / 1 days);
@@ -49,13 +49,13 @@ contract VotingSprint is Owned {
         return percent(projectVotes[_externalId], maximumScore, 2) >= acceptanceThreshold;
     }
 
-    function percent(uint numerator, uint denominator, uint precision) private constant returns(uint quotient) {
+    function percent(uint numerator, uint denominator, uint precision) private pure returns(uint quotient) {
         uint _numerator = numerator * 10 ** (precision+1);
         uint _quotient = ((_numerator / denominator) + 5) / 10;
         return ( _quotient);
     }
 
-    function setAcceptanceThreshold (uint _value) external onlyOwner {
+    function setAcceptanceThreshold(uint _value) external onlyOwner {
         require(_value > 0);
         acceptanceThreshold = _value;
     }

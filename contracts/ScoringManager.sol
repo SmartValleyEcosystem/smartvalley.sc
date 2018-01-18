@@ -2,7 +2,9 @@ pragma solidity ^ 0.4.18;
 
 import "./Owned.sol";
 import "./Scoring.sol";
+import "./VotingSprint.sol";
 import "./SmartValleyToken.sol";
+import "./Minter.sol";
 
 contract ScoringManager is Owned {
     struct Question {
@@ -15,14 +17,15 @@ contract ScoringManager is Owned {
     address[] public scorings;
     mapping(uint256 => address) public scoringsMap;
     SmartValleyToken public svt;
+    Minter public minter;
     uint public scoringCreationCostWEI;
     uint public estimateRewardWEI;
 
-
-    function ScoringManager(address _svtAddress, uint _scoringCreationCost, uint _estimateReward) public {
+    function ScoringManager(address _svtAddress, uint _scoringCreationCost, uint _estimateReward, address _minterAddress) public {
         setTokenAddress(_svtAddress);
         setScoringCreationCost(_scoringCreationCost);
-        setEstimateReward(_estimateReward);     
+        setEstimateReward(_estimateReward);
+        setMinterAddress(_minterAddress);
     }
 
     function start(uint256 _externalId) external {
@@ -32,6 +35,17 @@ contract ScoringManager is Owned {
         scoringsMap[_externalId] = scoring;
         svt.transferFromOrigin(scoring, scoringCreationCostWEI);
     }  
+
+    function startForFree(uint256 _externalId, address _votingSpringAddress) external {
+        var isAccepted = VotingSprint(_votingSpringAddress).isAccepted(_externalId);
+        require(isAccepted);
+
+        Scoring scoring = new Scoring(msg.sender, svt, estimateRewardWEI);
+        scorings.push(scoring);
+        scoringsMap[_externalId] = scoring;
+
+        minter.mintTokens(scoring, scoringCreationCostWEI);
+    }
 
     function submitEstimates(address _scoringAddress, uint _expertiseArea, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
@@ -90,11 +104,16 @@ contract ScoringManager is Owned {
         svt = SmartValleyToken(_svtAddress);
     }
 
+    function setMinterAddress(address _minterAddress) public onlyOwner {
+        require(_minterAddress != 0);
+        minter = Minter(_minterAddress);
+    }
+
     function setScoringCreationCost(uint _scoringCreationCost) public onlyOwner {
         scoringCreationCostWEI = _scoringCreationCost * (10 ** uint(svt.decimals()));
     }
 
     function setEstimateReward(uint _estimateReward) public onlyOwner {
         estimateRewardWEI = _estimateReward * (10 ** uint(svt.decimals()));
-    }  
+    }
 }
