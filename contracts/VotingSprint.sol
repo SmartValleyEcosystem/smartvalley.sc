@@ -10,14 +10,16 @@ contract VotingSprint is Owned {
     uint public endDate;
     uint public acceptanceThreshold;
     uint public maximumScore;
+    uint[] public projectIds;
 
     BalanceFreezer public freezer;
     SmartValleyToken public token;
 
     mapping(uint => bool) public projects;
     mapping(uint => uint) public projectVotes;
+    mapping(address => uint[]) public projectInvestorVotes;
     mapping(address => uint) public investorTokenAmounts;
-    mapping(uint => mapping( address => uint)) public investorVotes;
+    mapping(address => mapping( uint => uint)) public investorVotes;
 
     function VotingSprint(uint _durationDays, uint256[] _projectsIds, address _token, address _freezer) public {
         freezer = BalanceFreezer(_freezer);
@@ -25,14 +27,32 @@ contract VotingSprint is Owned {
 
         startDate = now;
         endDate = startDate + _durationDays * 1 days;
-
+        projectIds = _projectsIds;
+        
         for (uint i = 0; i < _projectsIds.length; i++) {
             projects[_projectsIds[i]] = true;
         }
     }
 
+    function getSprintInformation() external view returns(uint _startDate, uint _endDate, uint _acceptanceThreshold, uint _maximumScore, uint256[] _projectsIds) {        
+        _startDate = startDate;
+        _endDate = endDate;
+        _acceptanceThreshold = acceptanceThreshold;
+        _maximumScore = maximumScore;
+        _projectsIds = projectIds;
+    }
+
+    function getInvestorInformation(address _investorAddress) external view returns(uint256 _tokenAmount, uint256[] _projectsIds) {        
+        _tokenAmount = investorTokenAmounts[_investorAddress];       
+        _projectsIds = projectInvestorVotes[_investorAddress];
+    }
+
+    function getInvestorProjectVote(address _investorAddress, uint256 projectId) external view returns(uint256 _votes) {        
+        _votes = investorVotes[_investorAddress][projectId];
+    }
+
     function submitVote(uint _externalId, uint _valueWithDecimals) external {
-        require(_valueWithDecimals > 0 && projects[_externalId] && investorVotes[_externalId][msg.sender] == 0 && token.getAvailableBalance(msg.sender) >= _valueWithDecimals);
+        require(_valueWithDecimals > 0 && projects[_externalId] && investorVotes[msg.sender][_externalId] == 0 && token.getAvailableBalance(msg.sender) >= _valueWithDecimals);
 
         if (investorTokenAmounts[msg.sender] == 0) {
             investorTokenAmounts[msg.sender] = _valueWithDecimals;
@@ -40,7 +60,8 @@ contract VotingSprint is Owned {
             maximumScore += _valueWithDecimals;
         }
 
-        investorVotes[_externalId][msg.sender] = _valueWithDecimals;
+        projectInvestorVotes[msg.sender].push(_externalId);
+        investorVotes[msg.sender][_externalId] = _valueWithDecimals;
         projectVotes[_externalId] += _valueWithDecimals;
     }
 
