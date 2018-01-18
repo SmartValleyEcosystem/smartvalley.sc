@@ -15,7 +15,6 @@ contract VotingManager is Owned {
     uint256[] public projectsQueue;
     
     function VotingManager(address _freezer, address _token) public {
-        require(freezer != address(0) && token != address(0));        
         freezer = BalanceFreezer(_freezer);
         token = SmartValleyToken(_token);
     }
@@ -29,7 +28,7 @@ contract VotingManager is Owned {
     }
 
     function createSprint(uint _durationDays) public onlyOwner {
-        require(_durationDays > 0 && lastSprint.endDate() <= now && projectsQueue.length > minimumProjectsCount);        
+        require(_durationDays > 0 && (lastSprint == address(0) || lastSprint.endDate() <= now) && projectsQueue.length >= minimumProjectsCount);        
         var newSprint = new VotingSprint(_durationDays, projectsQueue, token, freezer);
         sprints.push(newSprint);
         lastSprint = newSprint;
