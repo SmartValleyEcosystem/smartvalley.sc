@@ -16,8 +16,8 @@ contract VotingSprint is Owned {
     SmartValleyToken public token;
 
     mapping(uint => bool) public projects;
-    mapping(uint => uint) public projectVotes;
-    mapping(address => uint[]) public projectInvestorVotes;
+    mapping(uint => uint) public projectTokenAmounts;
+    mapping(address => uint[]) public projectsByInvestor;
     mapping(address => uint) public investorTokenAmounts;
     mapping(address => mapping( uint => uint)) public investorVotes;
 
@@ -42,32 +42,32 @@ contract VotingSprint is Owned {
         _projectsIds = projectIds;
     }
 
-    function getInvestorInformation(address _investorAddress) external view returns(uint256 _tokenAmount, uint256[] _projectsIds) {        
+    function getInvestorVotesInformation(address _investorAddress) external view returns(uint256 _tokenAmount, uint256[] _projectsIds) {        
         _tokenAmount = investorTokenAmounts[_investorAddress];       
-        _projectsIds = projectInvestorVotes[_investorAddress];
+        _projectsIds = projectsByInvestor[_investorAddress];
     }
 
-    function getInvestorProjectVote(address _investorAddress, uint256 projectId) external view returns(uint256 _votes) {        
-        _votes = investorVotes[_investorAddress][projectId];
+    function getVote(address _investorAddress, uint256 projectId) external view returns(uint256 _tokenAmount) {        
+        _tokenAmount = investorVotes[_investorAddress][projectId];
     }
 
-    function submitVote(uint _externalId, uint _valueWithDecimals) external {
-        require(_valueWithDecimals > 0 && projects[_externalId] && investorVotes[msg.sender][_externalId] == 0 && token.getAvailableBalance(msg.sender) >= _valueWithDecimals);
+    function submitVote(uint _projectId, uint _tokenAmount) external {
+        require(_tokenAmount > 0 && projects[_projectId] && investorVotes[msg.sender][_projectId] == 0 && token.getAvailableBalance(msg.sender) >= _tokenAmount);
 
         if (investorTokenAmounts[msg.sender] == 0) {
-            investorTokenAmounts[msg.sender] = _valueWithDecimals;
-            freezer.freeze(_valueWithDecimals, (endDate - startDate) / 1 days);
-            maximumScore += _valueWithDecimals;
+            investorTokenAmounts[msg.sender] = _tokenAmount;
+            freezer.freeze(_tokenAmount, (endDate - startDate) / 1 days);
+            maximumScore += _tokenAmount;
         }
 
-        projectInvestorVotes[msg.sender].push(_externalId);
-        investorVotes[msg.sender][_externalId] = _valueWithDecimals;
-        projectVotes[_externalId] += _valueWithDecimals;
+        projectsByInvestor[msg.sender].push(_projectId);
+        investorVotes[msg.sender][_projectId] = _tokenAmount;
+        projectTokenAmounts[_projectId] += _tokenAmount;
     }
 
     function isAccepted(uint _externalId) external constant returns(bool) {
         require(projects[_externalId]);
-        return percent(projectVotes[_externalId], maximumScore, 2) >= acceptanceThreshold;
+        return percent(projectTokenAmounts[_externalId], maximumScore, 2) >= acceptanceThreshold;
     }
 
     function percent(uint numerator, uint denominator, uint precision) private pure returns(uint quotient) {

@@ -22,8 +22,12 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     //TODO Change to false on production.
     bool public isTransferAllowed = true;
     /*==========*/
-    
+
     bool public isMintingAllowed = true;
+
+    function SmartValleyToken(address _freezer) public {
+        setBalanceFreezer(_freezer);
+    }
 
     modifier onlyMinter {
         require(msg.sender == minter);

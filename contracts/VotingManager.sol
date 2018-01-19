@@ -6,17 +6,20 @@ import "./VotingSprint.sol";
 contract VotingManager is Owned {
 
     VotingSprint public lastSprint;
-    VotingSprint[] public sprints;   
-    uint public minimumProjectsCount;                                           
+    VotingSprint[] public sprints;
+    uint public minimumProjectsCount;
 
     BalanceFreezer public freezer;
     SmartValleyToken public token;
 
     uint256[] public projectsQueue;
     
-    function VotingManager(address _freezer, address _token) public {
+    function VotingManager(address _freezer, address _token, uint _minimumProjectsCount) public {
+        require(_freezer != 0 && _token != 0);
+
         freezer = BalanceFreezer(_freezer);
         token = SmartValleyToken(_token);
+        setMinimumProjectsCount(_minimumProjectsCount);
     }
 
     function enqueueProject(uint _projectId) external {

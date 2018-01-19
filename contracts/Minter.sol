@@ -12,16 +12,14 @@ contract Minter is Owned {
     SmartValleyToken public token;
     address public scoringManagerAddress;
 
-    function Minter(address _tokenAddress, address _scoringManagerAddress) public {
+    function Minter(address _tokenAddress) public {
         setTokenAddress(_tokenAddress);
-        setScoringManagerAddress(_scoringManagerAddress);
     }
 
     modifier onlyScoringManager {
         require(msg.sender == scoringManagerAddress);
         _;
     }
-
 
     function getTokens() external {
         require(canGetTokens(msg.sender));

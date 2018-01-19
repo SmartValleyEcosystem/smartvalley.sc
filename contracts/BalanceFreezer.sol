@@ -1,15 +1,15 @@
 pragma solidity ^ 0.4.18;
 
-contract BalanceFreezer {     
-    
+contract BalanceFreezer {
+
     mapping(address => FrozenBalance[]) public frozenBalances;
 
     struct FrozenBalance {
         uint amount;
         uint endTime;
-    }     
+    }
 
-    function freeze(uint _amountWithDecimals, uint _durationDays) external { 
+    function freeze(uint _amountWithDecimals, uint _durationDays) external {
         require(_amountWithDecimals > 0 && _durationDays > 0);
 
         //remove not actual records
@@ -33,8 +33,8 @@ contract BalanceFreezer {
             var currentFrozenBalance = currentFrozenBalances[i];
             if (now < currentFrozenBalance.endTime) {
                 frozenAmount += currentFrozenBalance.amount;
-            }        
-        }        
+            }
+        }
         return frozenAmount;
     }
 }
