@@ -70,10 +70,8 @@ contract VotingSprint is Owned {
         return percent(projectTokenAmounts[_externalId], maximumScore, 2) >= acceptanceThreshold;
     }
 
-    function percent(uint numerator, uint denominator, uint precision) private pure returns(uint quotient) {
-        uint _numerator = numerator * 10 ** (precision+1);
-        uint _quotient = ((_numerator / denominator) + 5) / 10;
-        return ( _quotient);
+    function percent(uint _numerator, uint _denominator, uint _precision) private pure returns(uint) {
+        return ((_numerator * 10 ** (_precision + 1) / _denominator) + 5) / 10;
     }
 
     function setAcceptanceThreshold(uint _value) external onlyOwner {
