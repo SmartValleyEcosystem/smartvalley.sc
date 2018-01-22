@@ -34,7 +34,7 @@ contract VotingSprint is Owned {
         }
     }
 
-    function getSprintInformation() external view returns(uint _startDate, uint _endDate, uint _acceptanceThreshold, uint _maximumScore, uint256[] _projectsIds) {        
+    function getSprint() external view returns(uint _startDate, uint _endDate, uint _acceptanceThreshold, uint _maximumScore, uint256[] _projectsIds) {        
         _startDate = startDate;
         _endDate = endDate;
         _acceptanceThreshold = acceptanceThreshold;
@@ -42,7 +42,7 @@ contract VotingSprint is Owned {
         _projectsIds = projectIds;
     }
 
-    function getInvestorVotesInformation(address _investorAddress) external view returns(uint256 _tokenAmount, uint256[] _projectsIds) {        
+    function getInvestorVotes(address _investorAddress) external view returns(uint256 _tokenAmount, uint256[] _projectsIds) {        
         _tokenAmount = investorTokenAmounts[_investorAddress];       
         _projectsIds = projectsByInvestor[_investorAddress];
     }
