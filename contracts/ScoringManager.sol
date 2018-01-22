@@ -18,22 +18,22 @@ contract ScoringManager is Owned {
     mapping(uint256 => address) public scoringsMap;
     SmartValleyToken public svt;
     Minter public minter;
-    uint public scoringCreationCostWEI;
+    uint public scoringCostWEI;
     uint public estimateRewardWEI;
 
-    function ScoringManager(address _svtAddress, uint _scoringCreationCost, uint _estimateReward, address _minterAddress) public {
+    function ScoringManager(address _svtAddress, uint _scoringCost, uint _estimateReward, address _minterAddress) public {
         setTokenAddress(_svtAddress);
-        setScoringCreationCost(_scoringCreationCost);
+        setScoringCost(_scoringCost);
         setEstimateReward(_estimateReward);
         setMinterAddress(_minterAddress);
     }
 
     function start(uint256 _externalId) external {
-        require(svt.balanceOf(msg.sender) >= scoringCreationCostWEI);
+        require(svt.balanceOf(msg.sender) >= scoringCostWEI);
         Scoring scoring = new Scoring(msg.sender, svt, estimateRewardWEI);
         scorings.push(scoring);
         scoringsMap[_externalId] = scoring;
-        svt.transferFromOrigin(scoring, scoringCreationCostWEI);
+        svt.transferFromOrigin(scoring, scoringCostWEI);
     }  
 
     function startForFree(uint256 _externalId, address _votingSpringAddress) external {
@@ -44,7 +44,7 @@ contract ScoringManager is Owned {
         scorings.push(scoring);
         scoringsMap[_externalId] = scoring;
 
-        minter.mintTokens(scoring, scoringCreationCostWEI);
+        minter.mintTokens(scoring, scoringCostWEI);
     }
 
     function submitEstimates(address _scoringAddress, uint _expertiseArea, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external {
@@ -109,8 +109,8 @@ contract ScoringManager is Owned {
         minter = Minter(_minterAddress);
     }
 
-    function setScoringCreationCost(uint _scoringCreationCost) public onlyOwner {
-        scoringCreationCostWEI = _scoringCreationCost * (10 ** uint(svt.decimals()));
+    function setScoringCost(uint _scoringCost) public onlyOwner {
+        scoringCostWEI = _scoringCost * (10 ** uint(svt.decimals()));
     }
 
     function setEstimateReward(uint _estimateReward) public onlyOwner {
