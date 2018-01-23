@@ -7,6 +7,7 @@ contract VotingManager is Owned {
 
     VotingSprint public lastSprint;
     VotingSprint[] public sprints;
+
     uint public minimumProjectsCount;
 
     BalanceFreezer public freezer;
@@ -23,6 +24,10 @@ contract VotingManager is Owned {
 
      function getProjectsQueue() external view returns(uint[]) {
        return projectsQueue;
+    }
+
+     function getSprints() external view returns(VotingSprint[] _sprints) {
+        _sprints = sprints;
     }
 
     function enqueueProject(uint _projectId) external {
