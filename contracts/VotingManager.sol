@@ -26,8 +26,14 @@ contract VotingManager is Owned {
        return projectsQueue;
     }
 
-     function getSprintsCount() external view returns(uint) {
-         return sprints.length;
+     function getSprints() external view returns(address[] _sprints) {
+         address[] memory sprintsAddreses = new address[](sprints.length);
+         
+         for (uint i = 0; i < sprints.length; i++) {
+            sprintsAddreses[i] = address(sprints[i]);
+        }
+
+         _sprints = sprintsAddreses;
     }
 
     function enqueueProject(uint _projectId) external {

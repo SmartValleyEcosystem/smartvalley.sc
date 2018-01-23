@@ -34,7 +34,7 @@ contract VotingSprint is Owned {
         }
     }
 
-    function getSprint() external view returns(uint _startDate, uint _endDate, uint _acceptanceThreshold, uint _maximumScore, uint256[] _projectsIds) {        
+    function getDetails() external view returns(uint _startDate, uint _endDate, uint _acceptanceThreshold, uint _maximumScore, uint256[] _projectsIds) {        
         _startDate = startDate;
         _endDate = endDate;
         _acceptanceThreshold = acceptanceThreshold;
