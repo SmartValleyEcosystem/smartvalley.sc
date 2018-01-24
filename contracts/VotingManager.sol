@@ -22,8 +22,8 @@ contract VotingManager is Owned {
         setMinimumProjectsCount(_minimumProjectsCount);
     }
 
-     function getProjectsQueue() external view returns(uint[]) {
-       return projectsQueue;
+     function getProjectsQueue() external view returns(uint[] _projectsQueue) {
+       _projectsQueue = projectsQueue;
     }
 
      function getSprints() external view returns(VotingSprint[] _sprints) {
