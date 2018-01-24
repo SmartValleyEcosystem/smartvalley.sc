@@ -9,6 +9,7 @@ contract VotingManager is Owned {
     VotingSprint[] public sprints;
 
     uint public minimumProjectsCount;
+    uint public acceptanceThresholdPercent;
 
     BalanceFreezer public freezer;
     SmartValleyToken public token;
@@ -22,7 +23,7 @@ contract VotingManager is Owned {
         setMinimumProjectsCount(_minimumProjectsCount);
     }
 
-     function getProjectsQueue() external view returns(uint[]) {
+    function getProjectsQueue() external view returns(uint[]) {
        return projectsQueue;
     }
 
@@ -40,7 +41,7 @@ contract VotingManager is Owned {
 
     function createSprint(uint _durationDays) public onlyOwner {
         require(_durationDays > 0 && (lastSprint == address(0) || lastSprint.endDate() <= now) && projectsQueue.length >= minimumProjectsCount);
-        var newSprint = new VotingSprint(_durationDays, projectsQueue, token, freezer);
+        var newSprint = new VotingSprint(_durationDays, projectsQueue, acceptanceThresholdPercent, token, freezer);
         sprints.push(newSprint);
         lastSprint = newSprint;
         projectsQueue.length = 0;
@@ -51,9 +52,12 @@ contract VotingManager is Owned {
         minimumProjectsCount = _value;
     }
 
-    function setAcceptanceThreshold (uint _value) public onlyOwner {
-        require(_value > 0 && lastSprint != address(0));
-        lastSprint.setAcceptanceThreshold(_value);
+    function setAcceptanceThresholdPercent (uint _value) public onlyOwner {
+        require(_value > 0);
+        acceptanceThresholdPercent = _value;
+        if (lastSprint != address(0)) {
+            lastSprint.setAcceptanceThresholdPercent(_value);
+        }        
     }
 
     function setFreezerAddress (address _freezerAddress) public onlyOwner {

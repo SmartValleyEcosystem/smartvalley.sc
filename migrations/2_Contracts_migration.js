@@ -30,6 +30,10 @@ module.exports = function(deployer) {
     return deployer.deploy(VotingManager, balanceFreeser.address, token.address, 2);
   })
   .then(function() {
+    return VotingManager.deployed();
+  })
+  .then(function(votingManagerInstance) {
+    votingManagerInstance.setAcceptanceThresholdPercent(50);
     return deployer.deploy(Minter, token.address);
   })
   .then(function() {
