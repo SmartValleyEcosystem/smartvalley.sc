@@ -10,6 +10,7 @@ module.exports = function(deployer) {
   let balanceFreeser;
   let minter;
   let scoringManager;
+  let votingManager;
 
   deployer.deploy(EtherManager)
   .then(function() {
@@ -33,7 +34,10 @@ module.exports = function(deployer) {
     return VotingManager.deployed();
   })
   .then(function(votingManagerInstance) {
-    votingManagerInstance.setAcceptanceThresholdPercent(50);
+    votingManager = votingManagerInstance;
+    return votingManager.setAcceptanceThreshold(50);    
+  })
+  .then(function() {
     return deployer.deploy(Minter, token.address);
   })
   .then(function() {
