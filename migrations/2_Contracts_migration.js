@@ -35,7 +35,7 @@ module.exports = function(deployer) {
   })
   .then(function(votingManagerInstance) {
     votingManager = votingManagerInstance;
-    return votingManager.setAcceptanceThreshold(50);    
+    return votingManager.setAcceptanceThresholdPercent(50);    
   })
   .then(function() {
     return deployer.deploy(Minter, token.address);
