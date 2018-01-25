@@ -8,7 +8,7 @@ contract VotingSprint is Owned {
 
     uint public startDate;
     uint public endDate;
-    uint public acceptanceThreshold;
+    uint public acceptanceThresholdPercent;
     uint public maximumScore;
     uint[] public projectIds;
 
@@ -21,23 +21,24 @@ contract VotingSprint is Owned {
     mapping(address => uint) public investorTokenAmounts;
     mapping(address => mapping( uint => uint)) public investorVotes;
 
-    function VotingSprint(uint _durationDays, uint256[] _projectsIds, address _token, address _freezer) public {
+    function VotingSprint(uint _durationDays, uint256[] _projectsIds, uint _acceptanceThresholdPercent, address _token, address _freezer) public {        
         freezer = BalanceFreezer(_freezer);
         token = SmartValleyToken(_token);
 
         startDate = now;
         endDate = startDate + _durationDays * 1 days;
         projectIds = _projectsIds;
+        acceptanceThresholdPercent = _acceptanceThresholdPercent;
         
         for (uint i = 0; i < _projectsIds.length; i++) {
             projects[_projectsIds[i]] = true;
         }
     }
 
-    function getDetails() external view returns(uint _startDate, uint _endDate, uint _acceptanceThreshold, uint _maximumScore, uint256[] _projectsIds) {        
+    function getDetails() external view returns(uint _startDate, uint _endDate, uint _acceptanceThresholdPercent, uint _maximumScore, uint256[] _projectsIds) {        
         _startDate = startDate;
         _endDate = endDate;
-        _acceptanceThreshold = acceptanceThreshold;
+        _acceptanceThresholdPercent = acceptanceThresholdPercent;
         _maximumScore = maximumScore;
         _projectsIds = projectIds;
     }
@@ -66,16 +67,12 @@ contract VotingSprint is Owned {
     }
 
     function isAccepted(uint _externalId) external constant returns(bool) {
-        require(projects[_externalId]);
-        return percent(projectTokenAmounts[_externalId], maximumScore, 2) >= acceptanceThreshold;
-    }
+        require(projects[_externalId]);        
+        return (projectTokenAmounts[_externalId] * 100) / maximumScore >= acceptanceThresholdPercent;
+    }    
 
-    function percent(uint _numerator, uint _denominator, uint _precision) private pure returns(uint) {
-        return ((_numerator * 10 ** (_precision + 1) / _denominator) + 5) / 10;
-    }
-
-    function setAcceptanceThreshold(uint _value) external onlyOwner {
+    function setAcceptanceThresholdPercent(uint _value) external onlyOwner {
         require(_value > 0);
-        acceptanceThreshold = _value;
+        acceptanceThresholdPercent = _value;
     }
 }
