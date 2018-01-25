@@ -41,7 +41,8 @@ contract VotingManager is Owned {
 
     function createSprint(uint _durationDays) public onlyOwner {
         require(_durationDays > 0 && (lastSprint == address(0) || lastSprint.endDate() <= now) && projectsQueue.length >= minimumProjectsCount);
-        var newSprint = new VotingSprint(_durationDays, projectsQueue, acceptanceThresholdPercent, token, freezer);
+        var newSprintNumber = sprints.length + 1;
+        var newSprint = new VotingSprint(newSprintNumber, _durationDays, projectsQueue, acceptanceThresholdPercent, token, freezer);
         sprints.push(newSprint);
         lastSprint = newSprint;
         projectsQueue.length = 0;
@@ -57,7 +58,7 @@ contract VotingManager is Owned {
         acceptanceThresholdPercent = _value;
         if (lastSprint != address(0)) {
             lastSprint.setAcceptanceThresholdPercent(_value);
-        }        
+        }
     }
 
     function setFreezerAddress (address _freezerAddress) public onlyOwner {

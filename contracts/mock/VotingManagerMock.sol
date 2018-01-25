@@ -10,7 +10,8 @@ contract VotingManagerMock is VotingManager {
 
     function createSprintMock(uint _durationDays) public onlyOwner {
         require(_durationDays > 0 && (lastSprint == address(0) || lastSprint.endDate() <= now) && projectsQueue.length >= minimumProjectsCount);
-        var newSprint = new VotingSprintMock(_durationDays, projectsQueue, acceptanceThresholdPercent, token, freezer);
+        var newSprintNumber = sprints.length + 1;
+        var newSprint = new VotingSprintMock(newSprintNumber, _durationDays, projectsQueue, acceptanceThresholdPercent, token, freezer);
         sprints.push(newSprint);
         lastSprint = newSprint;
         projectsQueue.length = 0;

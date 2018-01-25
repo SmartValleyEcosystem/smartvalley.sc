@@ -6,12 +6,12 @@ var SmartValleyTokenMock = artifacts.require('./mock/SmartValleyTokenMock.sol');
 contract('VotingSprint', async function(accounts) {
 
     let manager, freezer, token, owner, voter, voter1, voter2, projects, sprint;
-    let amount = 120 * (10 ** 18);    
-    let minimumProjectCount = 4;    
+    let amount = 120 * (10 ** 18);
+    let minimumProjectCount = 4;
     let options;
 
     function createProjectId() {
-        return Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;                
+        return Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
     }
 
     async function fillProjectQueue(count) {
@@ -24,13 +24,13 @@ contract('VotingSprint', async function(accounts) {
         return enqueuedProjects;
     }
 
-    beforeEach(async function() {            
-        owner = accounts[1];        
+    beforeEach(async function() {
+        owner = accounts[1];
         voter = accounts[3];
         voter1 = accounts[4];
         voter2 = accounts[5];
-        freezer = await BalanceFreezerMock.new({from: owner});        
-        token = await SmartValleyTokenMock.new(freezer.address, [voter, voter1, voter2, owner], amount, {from: owner});        
+        freezer = await BalanceFreezerMock.new({from: owner});
+        token = await SmartValleyTokenMock.new(freezer.address, [voter, voter1, voter2, owner], amount, {from: owner});
         manager = await VotingManagerMock.new(freezer.address, token.address, minimumProjectCount, {from: owner});
         manager.setAcceptanceThresholdPercent(50, {from: owner});
         projects = await fillProjectQueue(minimumProjectCount);
@@ -41,8 +41,8 @@ contract('VotingSprint', async function(accounts) {
             total_votes: 1,
             vote_per_project: 1,
             project_for_vote: projects[0]
-        }                    
-    });        
+        }
+    });
 
     //type 0 - OK test case, 1 - NOK test case
     var submitVote_TestCases = [
@@ -60,17 +60,17 @@ contract('VotingSprint', async function(accounts) {
         {type: 1, vote: 20, description: 'should not take the vote on the project not in sprint', 
             async precondition() {
                 projects.push(createProjectId());
-                options.project_for_vote = projects[minimumProjectCount]                
+                options.project_for_vote = projects[minimumProjectCount]
             }
         },
-        {type: 0, vote: 40, description: 'should take a vote from investor for many projects in sprint, maximumScore not changed', 
+        {type: 0, vote: 40, description: 'should take a vote from investor for many projects in sprint, maximumScore not changed',
             async precondition() {
                 await sprint.submitVote(projects[1], this.vote * (10 ** 18), {from: voter});
-                await sprint.submitVote(projects[2], this.vote * (10 ** 18), {from: voter});   
-                options.vote_per_project = 3                             
+                await sprint.submitVote(projects[2], this.vote * (10 ** 18), {from: voter});
+                options.vote_per_project = 3
             }
         },
-        {type: 0, vote: 60, description: 'should take a votes from investors on the project in sprint, maximumScore must increase', 
+        {type: 0, vote: 60, description: 'should take a votes from investors on the project in sprint, maximumScore must increase',
             async precondition() {
                 await sprint.submitVote(options.project_for_vote, this.vote * (10 ** 18), {from: voter1});
                 await sprint.submitVote(options.project_for_vote, this.vote * (10 ** 18), {from: voter2});
@@ -150,6 +150,7 @@ contract('VotingSprint', async function(accounts) {
         for(var i = 0; i < projects.length; i++) {
             assert.equal(details[4][i], projects[i], 'unexpected project');
         }
+        assert.equal(details[5], 1, 'first sprint number should be 1');
 
         await sprint.submitVote(projects[0], 30.55 * (10 ** 18), {from: voter});
         await sprint.submitVote(projects[0], 30 * (10 ** 18), {from: voter1});
@@ -169,17 +170,16 @@ contract('VotingSprint', async function(accounts) {
         for(var i = 0; i < projects.length; i++) {
             assert.equal(details[4][i], projects[i], 'unexpected project');
         }
-
     });
 
     it('getInvestorVotes should return projects and amount of tokens', async function() {
         var tokenAmount = 28.574763 * (10 ** 18);
         var projects_for_vote = [projects[0], projects[1], projects[2]];
 
-        var votes = await sprint.getInvestorVotes(voter);          
+        var votes = await sprint.getInvestorVotes(voter);
 
         assert.equal(votes[0], 0, 'token amount should by 0');
-        assert.equal(votes[1].length, 0, 'projects counts should by 0');        
+        assert.equal(votes[1].length, 0, 'projects counts should by 0');
 
         await sprint.submitVote(projects_for_vote[0], tokenAmount, {from: voter});
         await sprint.submitVote(projects_for_vote[1], 19.234545 * (10 ** 18), {from: voter});
@@ -207,5 +207,4 @@ contract('VotingSprint', async function(accounts) {
 
         assert.equal(vote, tokenAmount, 'vote of project invalid');
     });
-        
 });
