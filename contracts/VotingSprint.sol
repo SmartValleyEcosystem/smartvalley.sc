@@ -56,9 +56,11 @@ contract VotingSprint is Owned {
     }
 
     function submitVote(uint _projectId, uint _tokenAmount) external {
-        require(_tokenAmount > 0 && projects[_projectId] && investorVotes[msg.sender][_projectId] == 0 && token.getAvailableBalance(msg.sender) >= _tokenAmount);
+        require(_tokenAmount > 0 && projects[_projectId] && investorVotes[msg.sender][_projectId] == 0);
 
         if (investorTokenAmounts[msg.sender] == 0) {
+            require(token.getAvailableBalance(msg.sender) >= _tokenAmount);
+
             investorTokenAmounts[msg.sender] = _tokenAmount;
             freezer.freeze(_tokenAmount, (endDate - startDate) / 1 days);
             maximumScore += _tokenAmount;
