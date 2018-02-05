@@ -76,6 +76,12 @@ contract('VotingSprint', async function(accounts) {
                 await sprint.submitVote(options.project_for_vote, this.vote * (10 ** 18), {from: voter2});
                 options.total_votes = 3;
             }
+        },
+        {type: 0, vote: 120, description: 'should take a votes from investors on the project in sprint with maximum amount',
+            async precondition() {
+                await sprint.submitVote(options.project_for_vote, this.vote * (10 ** 18), {from: voter});                
+                options.total_votes = 2;
+            }
         }
     ]
 
@@ -206,5 +212,26 @@ contract('VotingSprint', async function(accounts) {
         vote = await sprint.getVote(voter, project_for_vote);
 
         assert.equal(vote, tokenAmount, 'vote of project invalid');
+    });
+
+    it.only('Mock test rewindTimeAndInvestor', async function() {
+        await sprint.submitVote(projects[0], 80 * (10 ** 18), {from: voter});
+        await sprint.submitVote(projects[1], 80 * (10 ** 18), {from: voter});
+        await sprint.submitVote(projects[0], 60 * (10 ** 18), {from: voter1});
+        await sprint.submitVote(projects[2], 100 * (10 ** 18), {from: voter2});
+
+        console.log('before');
+        console.log(await freezer.getFrozenAmount(voter));
+        console.log(await freezer.getFrozenAmount(voter1));
+        console.log(await freezer.getFrozenAmount(voter2));
+
+        await sprint.rewindTimeAndInvestors(-7, [voter, voter1, voter2]);
+
+        console.log('after');
+        console.log(await freezer.getFrozenAmount(voter));
+        console.log(await freezer.getFrozenAmount(voter1));
+        console.log(await freezer.getFrozenAmount(voter2));
+
+        console.log(await sprint.getDetails());
     });
 });

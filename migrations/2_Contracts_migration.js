@@ -1,8 +1,8 @@
 var EtherManager = artifacts.require("./EtherManager.sol");
 var SmartValleyToken = artifacts.require("./SmartValleyToken.sol");
-var BalanceFreezer = artifacts.require("./BalanceFreezer.sol");
+var BalanceFreezerMock = artifacts.require("./mock/BalanceFreezerMock.sol");
 var Minter = artifacts.require("./Minter.sol");
-var VotingManager = artifacts.require("./VotingManager.sol");
+var VotingManagerMock = artifacts.require("./mock/VotingManagerMock.sol");
 var ScoringManager = artifacts.require("./ScoringManager.sol");
 
 module.exports = function(deployer) {
@@ -14,10 +14,10 @@ module.exports = function(deployer) {
 
   deployer.deploy(EtherManager)
   .then(function() {
-    return deployer.deploy(BalanceFreezer);
+    return deployer.deploy(BalanceFreezerMock);
   })
   .then(function() {
-    return BalanceFreezer.deployed();
+    return BalanceFreezerMock.deployed();
   })
   .then(function(balanceFreezerInstance) {
     balanceFreeser = balanceFreezerInstance;
@@ -28,10 +28,10 @@ module.exports = function(deployer) {
   })
   .then(function(tokenInstance) {
     token = tokenInstance;
-    return deployer.deploy(VotingManager, balanceFreeser.address, token.address, 2);
+    return deployer.deploy(VotingManagerMock, balanceFreeser.address, token.address, 2);    
   })
   .then(function() {
-    return VotingManager.deployed();
+    return VotingManagerMock.deployed();
   })
   .then(function(votingManagerInstance) {
     votingManager = votingManagerInstance;
