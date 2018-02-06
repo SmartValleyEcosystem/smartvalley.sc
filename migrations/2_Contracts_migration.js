@@ -4,6 +4,8 @@ var BalanceFreezerMock = artifacts.require("./mock/BalanceFreezerMock.sol");
 var Minter = artifacts.require("./Minter.sol");
 var VotingManagerMock = artifacts.require("./mock/VotingManagerMock.sol");
 var ScoringManager = artifacts.require("./ScoringManager.sol");
+var AdministratorsRegistry = artifacts.require("./AdministratorsRegistry.sol");
+var ExpertsRegistry = artifacts.require("./ExpertsRegistry.sol");
 
 module.exports = function(deployer) {
   let token;
@@ -13,6 +15,16 @@ module.exports = function(deployer) {
   let votingManager;
 
   deployer.deploy(EtherManager)
+  .then(function() {
+    return deployer.deploy(AdministratorsRegistry);
+  })
+  .then(function() {
+    return AdministratorsRegistry.deployed();
+  })
+  .then(function(administratorsRegistryInstance) {
+    let areas = [1, 2, 3, 4];
+    return deployer.deploy(ExpertsRegistry, administratorsRegistryInstance.address, areas);
+  })
   .then(function() {
     return deployer.deploy(BalanceFreezerMock);
   })
@@ -35,7 +47,7 @@ module.exports = function(deployer) {
   })
   .then(function(votingManagerInstance) {
     votingManager = votingManagerInstance;
-    return votingManager.setAcceptanceThresholdPercent(50);    
+    return votingManager.setAcceptanceThresholdPercent(50);
   })
   .then(function() {
     return deployer.deploy(Minter, token.address);
