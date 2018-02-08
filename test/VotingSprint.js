@@ -214,7 +214,7 @@ contract('VotingSprint', async function(accounts) {
         assert.equal(vote, tokenAmount, 'vote of project invalid');
     });
 
-    it.only('Mock test rewindTimeAndInvestor', async function() {
+    it('Mock test rewindTimeAndInvestor', async function() {
         await sprint.submitVote(projects[0], 80 * (10 ** 18), {from: voter});
         await sprint.submitVote(projects[1], 80 * (10 ** 18), {from: voter});
         await sprint.submitVote(projects[0], 60 * (10 ** 18), {from: voter1});
