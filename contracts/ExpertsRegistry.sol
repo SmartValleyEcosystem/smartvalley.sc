@@ -134,14 +134,6 @@ contract ExpertsRegistry is Owned {
         expertsMap[_expert].areas[_area].approved = false;
     }
 
-    function get(uint _area, uint[] _indices) external view returns(address[]) {
-        address[] memory result = new address[](_indices.length);
-        for (uint i = 0; i < _indices.length; i++) {
-            result[i] = areaExpertsMap[_area][_indices[i]];
-        }
-        return result;
-    }
-
     function getApplications() external view returns(address[] _experts, uint[] _areas) {
         uint[] memory areas = new uint[](applications.length);
         address[] memory experts = new address[](applications.length);
