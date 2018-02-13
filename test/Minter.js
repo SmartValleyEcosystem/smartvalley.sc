@@ -1,16 +1,19 @@
 var MinterMock = artifacts.require('./mock/MinterMock.sol');
 var SmartValleyTokenMock = artifacts.require("./mock/SmartValleyTokenMock.sol");
+var BalanceFreezerMock = artifacts.require("./mock/BalanceFreezerMock.sol");
 
 contract('Minter', async function(accounts) {
 
     let token;
     let minter;
     let owner;
-    let amount = 120 * (10 ** 18);  
+    let amount = 120 * (10 ** 18);
+    let balanceFreezer;
 
     beforeEach(async function() {
         owner = accounts[8];
-        token = await SmartValleyTokenMock.new(owner, amount, {from: owner});
+        balanceFreezer = await BalanceFreezerMock.new();
+        token = await SmartValleyTokenMock.new(balanceFreezer.address, [owner], amount, {from: owner});
         minter = await MinterMock.new(token.address, {from: owner});
         await token.setMinter(minter.address, {from: owner});
     });
@@ -21,10 +24,8 @@ contract('Minter', async function(accounts) {
         await minter.getTokens({from: receiver});
         const balanceSVT = await token.balanceOf(receiver);
 
-        assert.equal(web3.fromWei(balanceSVT, 'ether'), 1200, 'balance of tokens is not changed');        
+        assert.equal(web3.fromWei(balanceSVT, 'ether'), 1200, 'balance of tokens is not changed');
         assert.isTrue(new Date().getTime() - (await minter.receiversDateMap(receiver) * 1000) < 2000, '');
-        //console.log((await token.totalSupply()).toString());
-        //assert.equal(web3.fromWei(await token.totalSupply(), 'ether'), 1200, 'total SVT supply incorrec');        
     });
 
     it('getTokens: try to get tokens on accaount #2 again, error, balance not changed', async function() {
@@ -140,7 +141,7 @@ contract('Minter', async function(accounts) {
         assert.equal(await minter.amountToGift(), 1200, 'amountToGift was changed');
     });
 
-    [-100.123456789012345678, -100, 0, 0.000006789012345678, 100, 100.123456789012345678].forEach(async (v, idx, arr) => {
+    [0, 100].forEach(async (v, idx, arr) => {
         await setAmountToGiftTest(v);
     });
 
@@ -169,15 +170,15 @@ contract('Minter', async function(accounts) {
     }
 
     it('setTokenAddress: should can set new token address', async function() {                
-        let new_token = await SmartValleyTokenMock.new(owner, amount, {from: owner});
+        let new_token = await SmartValleyTokenMock.new(balanceFreezer.address, [owner], amount, {from: owner});
 
         await minter.setTokenAddress(new_token.address, {from: owner});
 
-        assert.equal(await minter.token(), new_token_address, 'new token address is not setted');
+        assert.equal(await minter.token(), new_token.address, 'new token address is not setted');
     });
 
     it('setAmountToGift: should can set new token only owner', async function() {
-        let new_token = await SmartValleyTokenMock.new(owner, amount, {from: owner});
+        let new_token = await SmartValleyTokenMock.new(balanceFreezer.address, [owner], amount, {from: owner});
         let error = null;        
 
         try {

@@ -12,9 +12,8 @@ contract('SmartValleyToken', function(accounts) {
 
     beforeEach(async function(){
         owner = accounts[9];
-        token = await SmartValleyTokenMock.new(owner, amount, {from: owner});
         balanceFreezer = await BalanceFreezerMock.new();
-        await token.setBalanceFreezer(balanceFreezer.address, {from: owner});
+        token = await SmartValleyTokenMock.new(balanceFreezer.address, [owner], amount, {from: owner});
     });
 
     it("Should mint tokens", async function() {
@@ -205,7 +204,7 @@ contract('SmartValleyToken', function(accounts) {
     it("Should allow transfer when minting blocked", async function() {
         
         let initialBalance = 255;
-        let tokenMock = await SmartValleyTokenMock.new(accounts[0], initialBalance);
+        let tokenMock = await SmartValleyTokenMock.new(balanceFreezer.address, [accounts[0]], initialBalance);
 
         await tokenMock.blockMinting();
         await tokenMock.transfer(accounts[1], 100);

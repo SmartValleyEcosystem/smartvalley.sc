@@ -80,7 +80,6 @@ contract('VotingSprint', async function(accounts) {
         {type: 0, vote: 120, description: 'should take a votes from investors on the project in sprint with maximum amount',
             async precondition() {
                 await sprint.submitVote(options.project_for_vote, this.vote * (10 ** 18), {from: voter});                
-                options.total_votes = 2;
             }
         }
     ]
@@ -106,7 +105,7 @@ contract('VotingSprint', async function(accounts) {
     
             if(testCase.type == 0) {
                 assert.equal(await sprint.investorVotes(voter, project), vote_amount, 'vote of project not equal to real vote amount');
-                assert.equal(await sprint.maximumScore(), vote_amount * options.total_votes, 'maximumScore not increased');
+                assert.equal(+(await sprint.maximumScore()).toString(), vote_amount * options.total_votes, 'maximumScore not increased');
                 assert.equal(await sprint.projectTokenAmounts(project), vote_amount * options.total_votes, 'projectTokenAmounts invalid');
                 assert.equal(await sprint.projectsByInvestor(voter, options.vote_per_project - 1), project, 'projectsByInvestor invalid');
                 assert.equal(await sprint.investorTokenAmounts(voter), vote_amount, 'investorTokenAmounts invalid');

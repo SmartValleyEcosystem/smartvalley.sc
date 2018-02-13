@@ -20,7 +20,7 @@ contract VotingSprint is Owned {
     mapping(uint => uint) public projectTokenAmounts;
     mapping(address => uint[]) public projectsByInvestor;
     mapping(address => uint) public investorTokenAmounts;
-    mapping(address => mapping( uint => uint)) public investorVotes;
+    mapping(address => mapping(uint => uint)) public investorVotes;
 
     function VotingSprint(uint _number, uint _durationDays, uint256[] _projectsIds, uint _acceptanceThresholdPercent, address _token, address _freezer) public {
         freezer = BalanceFreezer(_freezer);
@@ -74,7 +74,7 @@ contract VotingSprint is Owned {
     function isAccepted(uint _externalId) external constant returns(bool) {
         require(projects[_externalId]);
         return (projectTokenAmounts[_externalId] * 100) / maximumScore >= acceptanceThresholdPercent;
-    }    
+    }
 
     function setAcceptanceThresholdPercent(uint _value) external onlyOwner {
         require(_value > 0);

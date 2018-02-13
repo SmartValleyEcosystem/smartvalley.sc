@@ -1,10 +1,11 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.19;
 
 import "./Owned.sol";
 import "./Scoring.sol";
 import "./VotingSprint.sol";
 import "./SmartValleyToken.sol";
 import "./Minter.sol";
+import "./ScoringExpertsManager.sol";
 
 contract ScoringManager is Owned {
     struct Question {
@@ -12,56 +13,71 @@ contract ScoringManager is Owned {
         int maxScore;
     }
 
-    mapping(uint => mapping(uint => Question)) public questionsByArea;
-    mapping(address => mapping(uint => mapping(address => bool))) public scoredProjectsByArea;
-    address[] public scorings;
-    mapping(uint256 => address) public scoringsMap;
-    SmartValleyToken public svt;
     Minter public minter;
+    SmartValleyToken public token;
+    ScoringExpertsManager public scoringExpertsManager;
+
     uint public scoringCostWEI;
     uint public estimateRewardWEI;
 
-    function ScoringManager(address _svtAddress, uint _scoringCost, uint _estimateReward, address _minterAddress) public {
-        setTokenAddress(_svtAddress);
+    mapping(uint => mapping(uint => Question)) public questionsByArea;
+
+    address[] public scorings;
+    mapping(address => mapping(uint => mapping(uint => bool))) public scoredProjectsByArea;
+    mapping(uint256 => address) public scoringsMap;
+
+    function ScoringManager(address _tokenAddress, uint _scoringCost, uint _estimateReward, address _minterAddress, address _scoringExpertsManagerAddress) public {
+        setToken(_tokenAddress);
         setScoringCost(_scoringCost);
         setEstimateReward(_estimateReward);
-        setMinterAddress(_minterAddress);
+        setMinter(_minterAddress);
+        setScoringExpertsManager(_scoringExpertsManagerAddress);
     }
 
-    function start(uint256 _externalId) external {
-        require(svt.balanceOf(msg.sender) >= scoringCostWEI);
-        Scoring scoring = new Scoring(msg.sender, svt, estimateRewardWEI);
-        scorings.push(scoring);
-        scoringsMap[_externalId] = scoring;
-        svt.transferFromOrigin(scoring, scoringCostWEI);
-    }  
+    function start(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) external {
+        require(token.balanceOf(msg.sender) >= scoringCostWEI);
+        require(_areas.length == _areaExpertCounts.length);
 
-    function startForFree(uint256 _externalId, address _votingSpringAddress) external {
-        var isAccepted = VotingSprint(_votingSpringAddress).isAccepted(_externalId);
+        Scoring scoring = new Scoring(msg.sender, token, estimateRewardWEI, _areas, _areaExpertCounts);
+        scorings.push(scoring);
+        scoringsMap[_projectId] = scoring;
+
+        scoringExpertsManager.selectExpertsForProject(_projectId, _areas, _areaExpertCounts);
+
+        token.transferFromOrigin(scoring, scoringCostWEI);
+    }
+
+    function startForFree(uint _projectId, address _votingSpringAddress, uint[] _areas, uint[] _areaExpertCounts) external {
+        require(_areas.length == _areaExpertCounts.length);
+
+        var isAccepted = VotingSprint(_votingSpringAddress).isAccepted(_projectId);
         require(isAccepted);
 
-        Scoring scoring = new Scoring(msg.sender, svt, estimateRewardWEI);
+        Scoring scoring = new Scoring(msg.sender, token, estimateRewardWEI, _areas, _areaExpertCounts);
         scorings.push(scoring);
-        scoringsMap[_externalId] = scoring;
+        scoringsMap[_projectId] = scoring;
+
+        scoringExpertsManager.selectExpertsForProject(_projectId, _areas, _areaExpertCounts);
 
         minter.mintTokens(scoring, scoringCostWEI);
     }
 
-    function submitEstimates(address _scoringAddress, uint _expertiseArea, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external {
+    function submitEstimates(uint _projectId, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
+        require(scoringExpertsManager.isExpertAssignedToProject(msg.sender, _projectId, _area));
 
         for (uint i = 0; i < _questionIds.length; i++) {
-            var question = questionsByArea[_expertiseArea][_questionIds[i]];
+            var question = questionsByArea[_area][_questionIds[i]];
             require(question.minScore != question.maxScore);
             require(_scores[i] <= question.maxScore && _scores[i] >= question.minScore);
         }
 
-        require(!scoredProjectsByArea[msg.sender][_expertiseArea][_scoringAddress]);
+        require(!scoredProjectsByArea[msg.sender][_area][_projectId]);
 
-        scoredProjectsByArea[msg.sender][_expertiseArea][_scoringAddress] = true;
+        scoredProjectsByArea[msg.sender][_area][_projectId] = true;
 
-        Scoring scoring = Scoring(_scoringAddress);
-        scoring.submitEstimates(msg.sender, _expertiseArea, _questionIds, _scores, _commentHashes);
+        Scoring scoring = Scoring(scoringsMap[_projectId]);
+        scoring.submitEstimates(msg.sender, _area, _questionIds, _scores, _commentHashes);
     }
 
     function setQuestions(uint[] _expertiseAreas, uint[] _questionIds, int[] _minScores, int[] _maxScores) external onlyOwner {
@@ -88,32 +104,37 @@ contract ScoringManager is Owned {
             var scoring = Scoring(scorings[i]);
             scoring.confirmOwner();
         }
-    }  
+    }
 
-    function updateScoringsSvtAddress(uint _startIndex, uint _count, address _newSvtAddress) external onlyOwner {
-        require(_startIndex + _count <= scorings.length && _newSvtAddress != 0);
+    function updateScoringsTokenAddress(uint _startIndex, uint _count, address _tokenAddress) external onlyOwner {
+        require(_startIndex + _count <= scorings.length && _tokenAddress != 0);
 
         for (var i = _startIndex; i < _startIndex + _count; i++) {
             var scoring = Scoring(scorings[i]);
-            scoring.setTokenAddress(_newSvtAddress);
+            scoring.setToken(_tokenAddress);
         }
     }
 
-    function setTokenAddress(address _svtAddress) public onlyOwner {
-        require(_svtAddress != 0);
-        svt = SmartValleyToken(_svtAddress);
+    function setToken(address _tokenAddress) public onlyOwner {
+        require(_tokenAddress != 0);
+        token = SmartValleyToken(_tokenAddress);
     }
 
-    function setMinterAddress(address _minterAddress) public onlyOwner {
+    function setMinter(address _minterAddress) public onlyOwner {
         require(_minterAddress != 0);
         minter = Minter(_minterAddress);
     }
 
+    function setScoringExpertsManager(address _scoringExpertsManagerAddress) public onlyOwner {
+        require(_scoringExpertsManagerAddress != 0);
+        scoringExpertsManager = ScoringExpertsManager(_scoringExpertsManagerAddress);
+    }
+
     function setScoringCost(uint _scoringCost) public onlyOwner {
-        scoringCostWEI = _scoringCost * (10 ** uint(svt.decimals()));
+        scoringCostWEI = _scoringCost * (10 ** uint(token.decimals()));
     }
 
     function setEstimateReward(uint _estimateReward) public onlyOwner {
-        estimateRewardWEI = _estimateReward * (10 ** uint(svt.decimals()));
+        estimateRewardWEI = _estimateReward * (10 ** uint(token.decimals()));
     }
 }

@@ -10,15 +10,16 @@ contract('Scoring', async function (accounts) {
     let amount = 120 * (10 ** 18);
     let tokensAmount = 120 * (10 ** 18);
     let reward = 10 * (10 ** 18);
+    let areas = [1, 2, 3, 4];
+    let areaExpertCounts = [3, 3, 3, 3];
 
     beforeEach(async function () {
         owner = accounts[9];
         scoringManager = accounts[8];
-        token = await SmartValleyTokenMock.new(owner, amount, { from: owner });
-        scoring = await ScoringMock.new(token.address, { from: scoringManager });
-        balanceFreezer = await BalanceFreezerMock.new();   
+        balanceFreezer = await BalanceFreezerMock.new();
+        token = await SmartValleyTokenMock.new(balanceFreezer.address, [owner], amount, { from: owner });
+        scoring = await ScoringMock.new(token.address, areas, areaExpertCounts, { from: scoringManager });
 
-        await token.setBalanceFreezer(balanceFreezer.address, {from: owner});
         await token.setMinter(owner, {from: owner});
         await token.mintTokens(scoring.address, tokensAmount, {from: owner});
     });
@@ -26,7 +27,7 @@ contract('Scoring', async function (accounts) {
     it('Initial state should be correct', async function () {
         assert.equal(await scoring.isScored(), false);
         assert.equal(await scoring.score(), 0);
-        assert.equal(await scoring.submissionsCount(), 0);
+        assert.equal(await scoring.currentSubmissionsCount(), 0);
         assert.equal((await scoring.getEstimates())[0].length, 0);
         assert.equal(await scoring.areaSubmissionsCounters(1), 0);
         assert.equal(await scoring.areaSubmissionsCounters(2), 0);
@@ -42,7 +43,7 @@ contract('Scoring', async function (accounts) {
 
         await scoring.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoringManager});
 
-        assert.equal(await scoring.submissionsCount(), 1);
+        assert.equal(await scoring.currentSubmissionsCount(), 1);
         assert.equal((await scoring.getEstimates())[0].length, scores.length);
         assert.equal(await scoring.areaSubmissionsCounters(area), 1);
         assert.equal(await scoring.isScored(), false);
@@ -76,7 +77,7 @@ contract('Scoring', async function (accounts) {
         await scoring.submitEstimates(accounts[0], area1, questions, scores, commentHashes, {from: scoringManager});
         await scoring.submitEstimates(accounts[0], area2, questions, scores, commentHashes, {from: scoringManager});
 
-        assert.equal(await scoring.submissionsCount(), 2);
+        assert.equal(await scoring.currentSubmissionsCount(), 2);
         assert.equal((await scoring.getEstimates())[0].length, scores.length * 2);
         assert.equal(await scoring.areaSubmissionsCounters(area1), 1);
         assert.equal(await scoring.areaSubmissionsCounters(area2), 1);
@@ -176,7 +177,7 @@ contract('Scoring', async function (accounts) {
 
         assert.equal(await scoring.score(), expectedScore);
         assert.equal(await scoring.isScored(), true);
-        assert.equal(await scoring.submissionsCount(), 12);
+        assert.equal(await scoring.currentSubmissionsCount(), 12);
         assert.equal((await scoring.getEstimates())[0].length, scores.length * 12);
         assert.equal(await scoring.areaSubmissionsCounters(1), 3);
         assert.equal(await scoring.areaSubmissionsCounters(2), 3);
