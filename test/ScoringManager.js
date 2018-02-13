@@ -35,6 +35,13 @@ contract('ScoringManager', async function(accounts) {
 
         external_id = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
+        await administratorsRegistry.add(owner, {from: owner});
+
+        await expertsRegistry.add(accounts[0], areas, {from: owner});
+        await expertsRegistry.add(accounts[1], areas, {from: owner});
+        await expertsRegistry.add(accounts[2], areas, {from: owner});
+        await expertsRegistry.add(accounts[3], areas, {from: owner});
+
         await token.addKnownContract(manager.address, {from: owner});
         await token.setMinter(minter.address, {from: owner});
         await scoringExpertsManager.setScoringManager(manager.address, {from: owner});
