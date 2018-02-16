@@ -51,7 +51,7 @@ module.exports = function(deployer) {
     })
     .then((freezerInstance) => {
       freezer = freezerInstance
-      return SmartValleyTokenMock.new(freezer.address, [], 1000 * (10 ** 18), {overwrite: false})
+      return SmartValleyTokenMock.new(freezer.address, [], 1000 * Math.pow(10, 18), {overwrite: false})
     })
     .then((tokenInstance) => {
       token = tokenInstance
