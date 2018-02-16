@@ -6,34 +6,38 @@ import "./RandomGenerator.sol";
 
 contract ScoringExpertsManager is Owned {
 
-    struct ScoringOffer {
-        bool hasBeenMade;
-        bool accepted;
-        bool rejected;
-    }
-
     ExpertsRegistry private expertsRegistry;
+    AdministratorsRegistry private administratorsRegistry;
+
     address public scoringManagerAddress;
 
     uint public expertsCountMultiplier;
     uint public offerExpirationPeriod;
 
+    // State contains one of following values:
+    // - 0: No offer created
+    // - 1: Offer is accepted
+    // - 2: Offer is rejected
+    // - timespan: Offer is pending (from the specified timespan)
+    mapping(uint => mapping(uint => mapping(address => uint))) offerStates;
     mapping(uint => mapping(uint => address[])) offers;
-    mapping(uint => mapping(uint => mapping(address => ScoringOffer))) offersMap;
-    mapping(uint => uint) offerTimestamps;
+    mapping(uint => mapping(uint => uint)) vacantExpertPositionCounts;
+    mapping(uint => uint[]) projectAreas;
 
-    mapping(uint => mapping(uint => address[])) projectExperts;
-
-    mapping(uint => mapping(uint => uint)) requestedProjectExpertCounts;
-
-    function ScoringExpertsManager(uint _expertsCountMultiplier, uint _offerExpirationPeriodDays, address _expertsRegistryAddress) public {
+    function ScoringExpertsManager(uint _expertsCountMultiplier, uint _offerExpirationPeriodDays, address _expertsRegistryAddress, address _administratorsRegistryAddress) public {
         setExpertsRegistry(_expertsRegistryAddress);
         setExpertsCountMultiplier(_expertsCountMultiplier);
         setOfferExpirationPeriod(_offerExpirationPeriodDays);
+        setAdministratorsRegistry(_administratorsRegistryAddress);
     }
 
     modifier onlyScoringManager {
         require(msg.sender == scoringManagerAddress);
+        _;
+    }
+
+    modifier onlyAdministrators {
+        require(administratorsRegistry.isAdministrator(msg.sender));
         _;
     }
 
@@ -47,8 +51,13 @@ contract ScoringExpertsManager is Owned {
         scoringManagerAddress = _scoringManagerAddress;
     }
 
+    function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
+        require(_administratorsRegistryAddress != 0);
+        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);
+    }
+
     function setExpertsCountMultiplier(uint _value) public onlyOwner {
-        require(_value > 1);
+        require(_value >= 1);
         expertsCountMultiplier = _value;
     }
 
@@ -57,77 +66,91 @@ contract ScoringExpertsManager is Owned {
         offerExpirationPeriod = _value * 1 days;
     }
 
-    function selectExpertsForProject(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) external {
-        var offerTimestamp = offerTimestamps[_projectId];
-        require(offerTimestamp == 0 || (now - offerTimestamp) > offerExpirationPeriod);
+    function selectExperts(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) external onlyScoringManager {
+        require(_areas.length != 0 && _areas.length == _areaExpertCounts.length);
+        require(projectAreas[_projectId].length == 0);
+
+        projectAreas[_projectId] = _areas;
 
         for (uint i = 0; i < _areas.length; i++) {
-            var areaExpertsCount = _areaExpertCounts[i];
-            var area = _areas[i];
-
-            requestedProjectExpertCounts[_projectId][area] = areaExpertsCount;
-
-            var areaExperts = getExpertsInArea(area, areaExpertsCount);
-            makeOffers(_projectId, area, areaExperts);
+            vacantExpertPositionCounts[_projectId][_areas[i]] = _areaExpertCounts[i];
+            makeOffers(_projectId, _areas[i]);
         }
     }
 
-    function makeOffers(uint _projectId, uint _area, address[] _experts) private {
-        offerTimestamps[_projectId] = now;
+    function selectMissingExperts(uint _projectId) external onlyAdministrators {
+        require(!hasAnyPendingOffers(_projectId));
 
-        for (uint i = 0; i < _experts.length; i++) {
-            require(!offersMap[_projectId][_area][_experts[i]].hasBeenMade);
+        uint[] storage areas = projectAreas[_projectId];
+        for (uint i = 0; i < areas.length; i++) {
+            makeOffers(_projectId, areas[i]);
+        }
+    }
 
-            offersMap[_projectId][_area][_experts[i]] = ScoringOffer({ hasBeenMade: true, accepted: false, rejected: false });
-            offers[_projectId][_area].push(_experts[i]);
+    function hasAnyPendingOffers(uint _projectId) private view returns (bool) {
+        uint minimumTimestamp = now - offerExpirationPeriod;
+        uint[] storage areas = projectAreas[_projectId];
+        for (uint i = 0; i < areas.length; i++) {
+            uint area = areas[i];
+            address[] storage areaOffers = offers[_projectId][area];
+            for (uint j = 0; j < areaOffers.length; j++) {
+                if (offerStates[_projectId][area][areaOffers[j]] > minimumTimestamp)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    function makeOffers(uint _projectId, uint _area) private {
+        uint expertsCount = vacantExpertPositionCounts[_projectId][_area];
+        require(expertsCount > 0);
+
+        uint[] memory indices = getExpertIndicesInArea(_projectId, _area, expertsCount);
+        for (uint i = 0; i < indices.length; i++) {
+            address expert = expertsRegistry.areaExpertsMap(_area, indices[i]);
+            require(offerStates[_projectId][_area][expert] == 0);
+
+            offerStates[_projectId][_area][expert] = now;
+            offers[_projectId][_area].push(expert);
         }
     }
 
     function reject(uint _projectId, uint _area) external {
-        var offer = offersMap[_projectId][_area][msg.sender];
-        require(offer.hasBeenMade && !offer.accepted && !offer.rejected && (now - offerTimestamps[_projectId]) < offerExpirationPeriod);
+        uint state = offerStates[_projectId][_area][msg.sender];
+        require(state > 0 && (now - state) < offerExpirationPeriod);
 
-        offer.rejected = true;
+        offerStates[_projectId][_area][msg.sender] = 2;
     }
 
     function accept(uint _projectId, uint _area) external {
-        var offer = offersMap[_projectId][_area][msg.sender];
-        require(offer.hasBeenMade && !offer.accepted && !offer.rejected && (now - offerTimestamps[_projectId]) < offerExpirationPeriod);
-        require(requestedProjectExpertCounts[_projectId][_area] > projectExperts[_projectId][_area].length);
+        uint state = offerStates[_projectId][_area][msg.sender];
+        require(state > 0 && (now - state) < offerExpirationPeriod);
+        require(vacantExpertPositionCounts[_projectId][_area] > 0);
 
-        offer.accepted = true;
-        projectExperts[_projectId][_area].push(msg.sender);
+        offerStates[_projectId][_area][msg.sender] = 1;
+        vacantExpertPositionCounts[_projectId][_area]--;
     }
 
     function isExpertAssignedToProject(address _expert, uint _projectId, uint _area) external view returns(bool) {
-        return offersMap[_projectId][_area][_expert].accepted;
+        return offerStates[_projectId][_area][_expert] == 1;
     }
 
-    function getExpertsInArea(uint _area, uint _requestedCount) private view returns(address[]) {
-        var availableCount = expertsRegistry.getExpertsCountInArea(_area);
+    function getExpertIndicesInArea(uint _projectId, uint _area, uint _requestedCount) private view returns(uint[]) {
+        uint[] memory indicesToExclude = getIndices(_area, offers[_projectId][_area]);
+        uint existingCount = expertsRegistry.getExpertsCountInArea(_area);
+        uint availableCount = existingCount - indicesToExclude.length;
+
         require(availableCount >= _requestedCount);
 
-        var extendedCount = _requestedCount * expertsCountMultiplier;
-        if (availableCount <= extendedCount) {
-            return getAllExpertsInArea(_area, availableCount);
-        } else {
-            var indices = RandomGenerator.generate(extendedCount, availableCount);
-            return getExpertsByIndices(_area, indices);
-        }
+        uint extendedCount = _requestedCount * expertsCountMultiplier;
+        uint countToGenerate = availableCount < extendedCount ? availableCount : extendedCount;
+        return RandomGenerator.generate(countToGenerate, existingCount, indicesToExclude);
     }
 
-    function getExpertsByIndices(uint _area, uint[] _indices) private view returns(address[]) {
-        address[] memory result = new address[](_indices.length);
-        for (uint i = 0; i < _indices.length; i++) {
-            result[i] = expertsRegistry.areaExpertsMap(_area, _indices[i]);
-        }
-        return result;
-    }
-
-    function getAllExpertsInArea(uint _area, uint _count) private view returns(address[]) {
-        address[] memory result = new address[](_count);
-        for (uint i = 0; i < _count; i++) {
-            result[i] = expertsRegistry.areaExpertsMap(_area, i);
+    function getIndices(uint _area, address[] _experts) private view returns(uint[]) {
+        uint[] memory result = new uint[](_experts.length);
+        for (uint i = 0; i < _experts.length; i++) {
+            result[i] = expertsRegistry.getExpertIndex(_experts[i], _area);
         }
         return result;
     }

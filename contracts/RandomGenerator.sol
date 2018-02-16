@@ -3,14 +3,15 @@ pragma solidity ^ 0.4.19;
 library RandomGenerator {
 
     uint constant MAP_SEGMENT_SIZE = 256;
-    uint constant MAXIMUM_COUNT = 20;
 
-    function generate(uint _count, uint _ceiling) internal view returns(uint[]) {
-        require(_count > 0 && _count <= MAXIMUM_COUNT);
+    function generate(uint _count, uint _ceiling, uint[] _numbersToExclude) internal view returns(uint[]) {
+        require(_count > 0 && _count <= _ceiling - _numbersToExclude.length);
 
         uint[] memory uniquenessMap = new uint[]((_ceiling / MAP_SEGMENT_SIZE) + 1);
+        if (_numbersToExclude.length != 0)
+            addToMap(uniquenessMap, _numbersToExclude);
 
-        var result = new uint[](_count);
+        uint[] memory result = new uint[](_count);
         for (uint i = 0; i < _count; i++) {
             uint seed = i == 0 ? 0 : result[i - 1] + i;
             result[i] = getUniqueNumber(seed, _ceiling, uniquenessMap);
@@ -19,7 +20,7 @@ library RandomGenerator {
     }
 
     function getUniqueNumber(uint _seed, uint _ceiling, uint[] _uniquenessMap) private view returns(uint) {
-        var number = getSomeNumber(_seed, _ceiling);
+        uint number = getSomeNumber(_seed, _ceiling);
         return ensureUnique(number, _ceiling, _uniquenessMap);
     }
 
@@ -32,11 +33,21 @@ library RandomGenerator {
         uint numberPositionInMapSegment = 2 ** (_number % MAP_SEGMENT_SIZE);
 
         if (_uniquenessMap[mapSegmentIndex] & numberPositionInMapSegment != 0) {
-            var nextNumber = _number < _ceiling - 1 ? _number + 1 : 0;
+            uint nextNumber = _number < _ceiling - 1 ? _number + 1 : 0;
             return ensureUnique(nextNumber, _ceiling, _uniquenessMap);
         } else {
             _uniquenessMap[mapSegmentIndex] |= numberPositionInMapSegment;
             return _number;
+        }
+    }
+
+    function addToMap(uint[] _uniquenessMap, uint[] _numbers) private pure {
+        for (uint i = 0; i < _numbers.length; i++) {
+            uint number = _numbers[i];
+            uint mapSegmentIndex = number / MAP_SEGMENT_SIZE;
+            uint numberPositionInMapSegment = 2 ** (number % MAP_SEGMENT_SIZE);
+
+            _uniquenessMap[mapSegmentIndex] |= numberPositionInMapSegment;
         }
     }
 }

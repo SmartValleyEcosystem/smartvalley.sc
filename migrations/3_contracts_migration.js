@@ -17,7 +17,6 @@ var RandomGenerator = artifacts.require("./RandomGenerator.sol");
 module.exports = function(deployer) {
 
   var questions =      [1,  2, 3,   4,  5,  6, 7,  8,  9, 10, 11, 12, 13];
-  var expertiseAreas = [1,  1, 1,   1,  4,  4, 2,  2,  2,  3,  3,  3,  3];
   var minScores =      [0,  0, 0, -15,  0,  0, 0,  0,  0,  0,  0,  0,  0];
   var maxScores =      [6, 10, 3,   0, 10, 15, 8, 10, 10,  7,  6,  5, 10];
 
@@ -30,10 +29,12 @@ module.exports = function(deployer) {
   let scoring;
   let scoringExpertsManager;
   let expertsRegistry;
+  let administratorsRegistry;
 
   if(deployer.network.includes('mock_')) {
     AdministratorsRegistry.new()
     .then(administratorsRegistryInstance => {
+      administratorsRegistry = administratorsRegistryInstance;
       return ExpertsRegistry.new(administratorsRegistryInstance.address, areas);
     })
     .then(expertsRegistryInstance => {
@@ -42,11 +43,11 @@ module.exports = function(deployer) {
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
-      return ScoringExpertsManager.new(3, 2, expertsRegistry.address);
+      return ScoringExpertsManager.new(3, 2, expertsRegistry.address, administratorsRegistry.address);
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
-      BalanceFreezerMock.new({overwrite: false});
+      return BalanceFreezerMock.new({overwrite: false});
     })
     .then((freezerInstance) => {
       freezer = freezerInstance
@@ -69,22 +70,26 @@ module.exports = function(deployer) {
     .then((scoringInstance) => {
       scoring = scoringInstance
       minter.setScoringManagerAddress(scoring.address);
-      scoring.setQuestions(expertiseAreas, questions, minScores, maxScores);
+      scoring.setQuestions(questions, minScores, maxScores);
       token.addKnownContract(scoring.address);
       scoringExpertsManager.setScoringManager(scoring.address);
     });
   } else {
     AdministratorsRegistry.new()
     .then(administratorsRegistryInstance => {
+      administratorsRegistry = administratorsRegistryInstance;
       return ExpertsRegistry.new(administratorsRegistryInstance.address, areas);
     })
     .then(expertsRegistryInstance => {
       expertsRegistry = expertsRegistryInstance;
-      return RandomGenerator.new();
+      return deployer.deploy(RandomGenerator);
+    })
+    .then(() => {
+      return RandomGenerator.deployed();
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
-      return ScoringExpertsManager.new(3, 2, expertsRegistry.address);
+      return ScoringExpertsManager.new(3, 2, expertsRegistry.address, administratorsRegistry.address);
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
@@ -111,7 +116,7 @@ module.exports = function(deployer) {
     .then((scoringInstance) => {
       scoring = scoringInstance;
       minter.setScoringManagerAddress(scoring.address);
-      scoring.setQuestions(expertiseAreas, questions, minScores, maxScores);
+      scoring.setQuestions(questions, minScores, maxScores);
       token.addKnownContract(scoring.address);
       scoringExpertsManager.setScoringManager(scoring.address);
     });

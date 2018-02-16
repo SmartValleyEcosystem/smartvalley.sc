@@ -51,7 +51,7 @@ contract ExpertsRegistry is Owned {
         require(_areas.length > 0);
 
         for (uint i = 0; i < _areas.length; i++) {
-            var area = _areas[i];
+            uint area = _areas[i];
             require(!expertsMap[msg.sender].areas[area].approved);
 
             expertsMap[msg.sender].areas[area].applied = true;
@@ -63,7 +63,7 @@ contract ExpertsRegistry is Owned {
         require(_areas.length > 0 && _expert != 0);
 
         for (uint i = 0; i < _areas.length; i++) {
-            var area = _areas[i];
+            uint area = _areas[i];
 
             require(expertsMap[_expert].areas[area].applied);
             require(!expertsMap[_expert].areas[area].approved);
@@ -94,7 +94,7 @@ contract ExpertsRegistry is Owned {
         expertsMap[_expert].enabled = true;
 
         for (uint i = 0; i < availableAreas.length; i++) {
-            var area = availableAreas[i];
+            uint area = availableAreas[i];
             if (expertsMap[_expert].areas[area].approved) {
                 addInArea(_expert, area);
             }
@@ -106,7 +106,7 @@ contract ExpertsRegistry is Owned {
         require(administratorsRegistry.isAdministrator(msg.sender) || msg.sender == _expert);
 
         for (uint i = 0; i < availableAreas.length; i++) {
-            var area = availableAreas[i];
+            uint area = availableAreas[i];
             if (expertsMap[_expert].areas[area].approved) {
                 removeFromAreaCollection(expertsMap[_expert].areas[area].index, area);
             }
@@ -163,6 +163,10 @@ contract ExpertsRegistry is Owned {
 
     function getExpertsCountInArea(uint _area) external view returns(uint) {
         return areaExpertsMap[_area].length;
+    }
+
+    function getExpertIndex(address _expert, uint _area) external view returns(uint) {
+        return expertsMap[_expert].areas[_area].index;
     }
 
     function removeFromAreaCollection(uint _index, uint _area) private {

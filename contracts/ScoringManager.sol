@@ -20,10 +20,9 @@ contract ScoringManager is Owned {
     uint public scoringCostWEI;
     uint public estimateRewardWEI;
 
-    mapping(uint => mapping(uint => Question)) public questionsByArea;
+    mapping(uint => Question) public questionsMap;
 
     address[] public scorings;
-    mapping(address => mapping(uint => mapping(uint => bool))) public scoredProjectsByArea;
     mapping(uint256 => address) public scoringsMap;
 
     function ScoringManager(address _tokenAddress, uint _scoringCost, uint _estimateReward, address _minterAddress, address _scoringExpertsManagerAddress) public {
@@ -38,11 +37,11 @@ contract ScoringManager is Owned {
         require(token.balanceOf(msg.sender) >= scoringCostWEI);
         require(_areas.length == _areaExpertCounts.length);
 
-        Scoring scoring = new Scoring(msg.sender, token, estimateRewardWEI, _areas, _areaExpertCounts);
+        Scoring scoring = new Scoring(msg.sender, token, _areas, _areaExpertCounts);
         scorings.push(scoring);
         scoringsMap[_projectId] = scoring;
 
-        scoringExpertsManager.selectExpertsForProject(_projectId, _areas, _areaExpertCounts);
+        scoringExpertsManager.selectExperts(_projectId, _areas, _areaExpertCounts);
 
         token.transferFromOrigin(scoring, scoringCostWEI);
     }
@@ -53,11 +52,11 @@ contract ScoringManager is Owned {
         var isAccepted = VotingSprint(_votingSpringAddress).isAccepted(_projectId);
         require(isAccepted);
 
-        Scoring scoring = new Scoring(msg.sender, token, estimateRewardWEI, _areas, _areaExpertCounts);
+        Scoring scoring = new Scoring(msg.sender, token, _areas, _areaExpertCounts);
         scorings.push(scoring);
         scoringsMap[_projectId] = scoring;
 
-        scoringExpertsManager.selectExpertsForProject(_projectId, _areas, _areaExpertCounts);
+        scoringExpertsManager.selectExperts(_projectId, _areas, _areaExpertCounts);
 
         minter.mintTokens(scoring, scoringCostWEI);
     }
@@ -67,24 +66,20 @@ contract ScoringManager is Owned {
         require(scoringExpertsManager.isExpertAssignedToProject(msg.sender, _projectId, _area));
 
         for (uint i = 0; i < _questionIds.length; i++) {
-            var question = questionsByArea[_area][_questionIds[i]];
+            var question = questionsMap[_questionIds[i]];
             require(question.minScore != question.maxScore);
             require(_scores[i] <= question.maxScore && _scores[i] >= question.minScore);
         }
 
-        require(!scoredProjectsByArea[msg.sender][_area][_projectId]);
-
-        scoredProjectsByArea[msg.sender][_area][_projectId] = true;
-
         Scoring scoring = Scoring(scoringsMap[_projectId]);
-        scoring.submitEstimates(msg.sender, _area, _questionIds, _scores, _commentHashes);
+        scoring.submitEstimates(msg.sender, _area, _questionIds, _scores, _commentHashes, estimateRewardWEI);
     }
 
-    function setQuestions(uint[] _expertiseAreas, uint[] _questionIds, int[] _minScores, int[] _maxScores) external onlyOwner {
-        require(_expertiseAreas.length == _questionIds.length && _questionIds.length == _minScores.length && _minScores.length == _maxScores.length);
+    function setQuestions(uint[] _questionIds, int[] _minScores, int[] _maxScores) external onlyOwner {
+        require(_questionIds.length == _minScores.length && _minScores.length == _maxScores.length);
 
         for (uint i = 0; i < _questionIds.length; i++) {
-            questionsByArea[_expertiseAreas[i]][_questionIds[i]] = Question(_minScores[i], _maxScores[i]);
+            questionsMap[_questionIds[i]] = Question(_minScores[i], _maxScores[i]);
         }
     }
 
