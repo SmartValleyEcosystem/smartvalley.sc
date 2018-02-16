@@ -39,7 +39,10 @@ module.exports = function(deployer) {
     })
     .then(expertsRegistryInstance => {
       expertsRegistry = expertsRegistryInstance;
-      return RandomGenerator.new();
+      return deployer.deploy(RandomGenerator);
+    })
+    .then(() => {
+      return RandomGenerator.deployed();
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
