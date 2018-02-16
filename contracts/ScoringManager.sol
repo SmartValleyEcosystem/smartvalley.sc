@@ -48,9 +48,7 @@ contract ScoringManager is Owned {
 
     function startForFree(uint _projectId, address _votingSpringAddress, uint[] _areas, uint[] _areaExpertCounts) external {
         require(_areas.length == _areaExpertCounts.length);
-
-        var isAccepted = VotingSprint(_votingSpringAddress).isAccepted(_projectId);
-        require(isAccepted);
+        require(VotingSprint(_votingSpringAddress).isAccepted(_projectId));
 
         Scoring scoring = new Scoring(msg.sender, token, _areas, _areaExpertCounts);
         scorings.push(scoring);
@@ -66,7 +64,7 @@ contract ScoringManager is Owned {
         require(scoringExpertsManager.isExpertAssignedToProject(msg.sender, _projectId, _area));
 
         for (uint i = 0; i < _questionIds.length; i++) {
-            var question = questionsMap[_questionIds[i]];
+            Question storage question = questionsMap[_questionIds[i]];
             require(question.minScore != question.maxScore);
             require(_scores[i] <= question.maxScore && _scores[i] >= question.minScore);
         }
@@ -86,8 +84,8 @@ contract ScoringManager is Owned {
     function updateScoringsOwner(uint _startIndex, uint _count, address _newScoringManager) external {
         require(_startIndex + _count <= scorings.length && _newScoringManager != 0);
 
-        for (var i = _startIndex; i < _startIndex + _count; i++) {
-            var scoring = Scoring(scorings[i]);
+        for (uint i = _startIndex; i < _startIndex + _count; i++) {
+            Scoring scoring = Scoring(scorings[i]);
             scoring.changeOwner(_newScoringManager);
         }
     } 
@@ -95,8 +93,8 @@ contract ScoringManager is Owned {
     function confirmScoringsOwner(uint _startIndex, uint _count) external {
         require(_startIndex + _count <= scorings.length);
 
-        for (var i = _startIndex; i < _startIndex + _count; i++) {
-            var scoring = Scoring(scorings[i]);
+        for (uint i = _startIndex; i < _startIndex + _count; i++) {
+            Scoring scoring = Scoring(scorings[i]);
             scoring.confirmOwner();
         }
     }
@@ -104,8 +102,8 @@ contract ScoringManager is Owned {
     function updateScoringsTokenAddress(uint _startIndex, uint _count, address _tokenAddress) external onlyOwner {
         require(_startIndex + _count <= scorings.length && _tokenAddress != 0);
 
-        for (var i = _startIndex; i < _startIndex + _count; i++) {
-            var scoring = Scoring(scorings[i]);
+        for (uint i = _startIndex; i < _startIndex + _count; i++) {
+            Scoring scoring = Scoring(scorings[i]);
             scoring.setToken(_tokenAddress);
         }
     }

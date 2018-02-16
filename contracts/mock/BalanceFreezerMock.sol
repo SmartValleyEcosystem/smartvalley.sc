@@ -8,7 +8,7 @@ contract BalanceFreezerMock is BalanceFreezer {
         FrozenBalance[] storage currentFrozenBalances = frozenBalances[_address];
 
         for (uint i = 0; i < currentFrozenBalances.length; i++) {
-            var currentFrozenBalance = currentFrozenBalances[i];
+            FrozenBalance storage currentFrozenBalance = currentFrozenBalances[i];
             currentFrozenBalance.endTime = currentFrozenBalance.endTime + _days * 1 days;
         }
     }

@@ -79,7 +79,7 @@ contract ExpertsRegistry is Owned {
         require(_expert != 0);
 
         for (uint i = 0; i < availableAreas.length; i++) {
-            var area = availableAreas[i];
+            uint area = availableAreas[i];
             if (expertsMap[_expert].areas[area].applied)
                 expertsMap[_expert].areas[area].applied = false;
         }
@@ -128,7 +128,7 @@ contract ExpertsRegistry is Owned {
         require(expertsMap[_expert].exists);
 
         for (uint i = 0; i < availableAreas.length; i++) {
-            var area = availableAreas[i];
+            uint area = availableAreas[i];
             if (expertsMap[_expert].areas[area].approved) {
                 removeFromAreaCollection(expertsMap[_expert].areas[area].index, area);
                 expertsMap[_expert].areas[area].approved = false;
@@ -170,8 +170,8 @@ contract ExpertsRegistry is Owned {
     }
 
     function removeFromAreaCollection(uint _index, uint _area) private {
-        var areaCollection = areaExpertsMap[_area];
-        var expertToMove = areaCollection[areaCollection.length - 1];
+        address[] storage areaCollection = areaExpertsMap[_area];
+        address expertToMove = areaCollection[areaCollection.length - 1];
         areaCollection[_index] = expertToMove;
 
         if (_index != areaCollection.length - 1) {

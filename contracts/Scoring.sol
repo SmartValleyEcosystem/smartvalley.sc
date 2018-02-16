@@ -40,7 +40,7 @@ contract Scoring is Owned {
     function submitEstimates(address _expert, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes, uint _estimateRewardWEI) external onlyOwner {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
         
-        var areaScoring = areaScorings[_area];
+        AreaScoring storage areaScoring = areaScorings[_area];
         require(!areaScoring.experts[_expert]);
         require(areaScoring.submissionsCount < areaScoring.expertsCount);
 
@@ -87,7 +87,7 @@ contract Scoring is Owned {
         _areas = areas;
         _areaResults = new bool[](areas.length);
         for (uint i = 0; i < _areas.length; i++) {
-            var areaScoring = areaScorings[_areas[i]];
+            AreaScoring storage areaScoring = areaScorings[_areas[i]];
             _areaResults[i] = areaScoring.submissionsCount == areaScoring.expertsCount;
         }
     }
@@ -100,7 +100,7 @@ contract Scoring is Owned {
     function calculateScore() private view returns(int) {
         int sum = 0;
         for (uint i = 0; i < areas.length; i++) {
-            var areaScoring = areaScorings[areas[i]];
+            AreaScoring storage areaScoring = areaScorings[areas[i]];
             sum += areaScoring.sum / int(areaScoring.expertsCount);
         }
         return sum;
