@@ -75,6 +75,18 @@ contract ExpertsRegistry is Owned {
         expertsMap[_expert].exists = true;
     }
 
+    function reject(address _expert) external onlyAdministrators {
+        require(_expert != 0);
+
+        for (uint i = 0; i < availableAreas.length; i++) {
+            var area = availableAreas[i];
+            if (expertsMap[_expert].areas[area].applied)
+                expertsMap[_expert].areas[area].applied = false;
+        }
+
+        removeApplications(_expert);
+    }
+
     function enable(address _expert) external {
         require(administratorsRegistry.isAdministrator(msg.sender) || msg.sender == _expert);
         require(expertsMap[_expert].exists && !expertsMap[_expert].enabled);
