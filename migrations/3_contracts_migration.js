@@ -32,10 +32,16 @@ module.exports = function(deployer) {
   let administratorsRegistry;
 
   if(deployer.network.includes('mock_')) {
-    AdministratorsRegistry.new()
+    deployer.deploy(AdministratorsRegistry)
+    .then(() => {
+      return AdministratorsRegistry.deployed();
+    })
     .then(administratorsRegistryInstance => {
       administratorsRegistry = administratorsRegistryInstance;
-      return ExpertsRegistry.new(administratorsRegistryInstance.address, areas);
+      return deployer.deploy(ExpertsRegistry, administratorsRegistryInstance.address, areas);
+    })
+    .then(() => {
+      return ExpertsRegistry.deployed();
     })
     .then(expertsRegistryInstance => {
       expertsRegistry = expertsRegistryInstance;
@@ -46,29 +52,47 @@ module.exports = function(deployer) {
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
-      return ScoringExpertsManager.new(3, 2, expertsRegistry.address, administratorsRegistry.address);
+      return deployer.deploy(ScoringExpertsManager, 3, 2, expertsRegistry.address, administratorsRegistry.address);
+    })
+    .then(() => {
+      return ScoringExpertsManager.deployed();
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
-      return BalanceFreezerMock.new({overwrite: false});
+      return deployer.deploy(BalanceFreezerMock, {overwrite: false});
+    })
+    .then(() => {
+      return BalanceFreezerMock.deployed();
     })
     .then((freezerInstance) => {
       freezer = freezerInstance
-      return SmartValleyTokenMock.new(freezer.address, [], 1000 * Math.pow(10, 18), {overwrite: false})
+      return deployer.deploy(SmartValleyTokenMock, freezer.address, [], 1000 * Math.pow(10, 18), {overwrite: false})
+    })
+    .then(() => {
+      return SmartValleyTokenMock.deployed();
     })
     .then((tokenInstance) => {
       token = tokenInstance
-      return VotingManagerMock.new(freezer.address, token.address, 2, {overwrite: false})
+      return deployer.deploy(VotingManagerMock, freezer.address, token.address, 2, {overwrite: false})
+    })
+    .then(() => {
+      return VotingManagerMock.deployed();
     })
     .then((votingInstance) => {
       voting = votingInstance
       voting.setAcceptanceThresholdPercent(50)
-      return MinterMock.new(token.address, {overwrite: false})
+      return deployer.deploy(MinterMock, token.address, {overwrite: false})
+    })
+    .then(() => {
+      return MinterMock.deployed();
     })
     .then((minterInstance) => {
       minter = minterInstance
       token.setMinter(minter.address)
-      return ScoringManagerMock.new(token.address, 120, 10, minter.address, scoringExpertsManager.address, {overwrite: false})
+      return deployer.deploy(ScoringManagerMock, token.address, 120, 10, minter.address, scoringExpertsManager.address, {overwrite: false})
+    })
+    .then(() => {
+      return ScoringManagerMock.deployed();
     })
     .then((scoringInstance) => {
       scoring = scoringInstance
@@ -78,10 +102,16 @@ module.exports = function(deployer) {
       scoringExpertsManager.setScoringManager(scoring.address);
     });
   } else {
-    AdministratorsRegistry.new()
+    deployer.deploy(AdministratorsRegistry)
+    .then(() => {
+      return AdministratorsRegistry.deployed();
+    })
     .then(administratorsRegistryInstance => {
       administratorsRegistry = administratorsRegistryInstance;
-      return ExpertsRegistry.new(administratorsRegistryInstance.address, areas);
+      return deployer.deploy(ExpertsRegistry, administratorsRegistryInstance.address, areas);
+    })
+    .then(() => {
+      return ExpertsRegistry.deployed();
     })
     .then(expertsRegistryInstance => {
       expertsRegistry = expertsRegistryInstance;
@@ -92,29 +122,47 @@ module.exports = function(deployer) {
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
-      return ScoringExpertsManager.new(3, 2, expertsRegistry.address, administratorsRegistry.address);
+      return deployer.deploy(ScoringExpertsManager, 3, 2, expertsRegistry.address, administratorsRegistry.address);
+    })
+    .then(() => {
+      return ScoringExpertsManager.deployed();
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
-      return BalanceFreezer.new();
+      return deployer.deploy(BalanceFreezer);
+    })
+    .then(() => {
+      return BalanceFreezer.deployed();
     })
     .then((freezerInstance) => {
       freezer = freezerInstance;
-      return SmartValleyToken.new(freezer.address);
+      return deployer.deploy(SmartValleyToken, freezer.address);
+    })
+    .then(() => {
+      return SmartValleyToken.deployed();
     })
     .then((tokenInstance) => {
       token = tokenInstance;
-      return VotingManager.new(freezer.address, token.address, 2);
+      return deployer.deploy(VotingManager, freezer.address, token.address, 2);
+    })
+    .then(() => {
+      return VotingManager.deployed();
     })
     .then((votingInstance) => {
       voting = votingInstance;
       voting.setAcceptanceThresholdPercent(50);
-      return Minter.new(token.address);
+      return deployer.deploy(Minter, token.address);
+    })
+    .then(() => {
+      return Minter.deployed();
     })
     .then((minterInstance) => {
       minter = minterInstance;
       token.setMinter(minter.address);
-      return ScoringManager.new(token.address, 120, 10, minter.address, scoringExpertsManager.address);
+      return deployer.deploy(ScoringManager, token.address, 120, 10, minter.address, scoringExpertsManager.address);
+    })
+    .then(() => {
+      return ScoringManager.deployed();
     })
     .then((scoringInstance) => {
       scoring = scoringInstance;
