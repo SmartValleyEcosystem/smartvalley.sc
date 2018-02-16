@@ -17,6 +17,8 @@ let configPath = 'C:\\Users\\User\\Documents\\smartvalley\\SmartValley.WebApi\\a
 //4447 - privatnet truffle develop
 let network_id = '4'
 
+let mock = true
+
 if (process.argv.length > 2) {
     network_id = process.argv[2]    
 }
@@ -29,23 +31,34 @@ try {
     let appsettings = JSON.parse(fs.readFileSync(configPath, 'utf-8').trim())    
 
     const contracts = [
-        {name: 'EtherManager', config: appsettings.NethereumOptions.EtherManagerContract},
-        {name: 'SmartValleyToken', config: appsettings.NethereumOptions.TokenContract},
-        {name: 'VotingManager', config: appsettings.NethereumOptions.VotingManagerContract},
-        {name: 'Minter', config: appsettings.NethereumOptions.MinterContract},
-        {name: 'ScoringManager', config: appsettings.NethereumOptions.ScoringManagerContract},
+        {name: 'EtherManager', config: appsettings.NethereumOptions.EtherManagerContract, deployable: true},
+        {name: 'SmartValleyToken', config: appsettings.NethereumOptions.TokenContract, deployable: true},
+        {name: 'VotingManager', config: appsettings.NethereumOptions.VotingManagerContract, deployable: true},
+        {name: 'Minter', config: appsettings.NethereumOptions.MinterContract, deployable: true},
+        {name: 'ScoringManager', config: appsettings.NethereumOptions.ScoringManagerContract, deployable: true},
+        {name: 'AdministratorsRegistry', config: appsettings.NethereumOptions.AdminRegistryContract, deployable: true},
+        {name: 'Scoring', config: appsettings.NethereumOptions.ScoringContract, deployable: false},
+        {name: 'VotingSprint', config: appsettings.NethereumOptions.VotingSprintContract, deployable: false}
       ]
       
       for (let i = 0; i < contracts.length; i++) {
-          let source = JSON.parse(fs.readFileSync('./build/contracts/' + contracts[i].name + '.json'))
-          let address = source.networks[network_id].address
-          contracts[i].config.Address = address
-          console.log(contracts[i].name + ' address ' + address + ' added in appsetings.json')
+          let source = JSON.parse(fs.readFileSync('./build/contracts/' + contracts[i].name + (mock ? 'Mock' : '') + '.json'))
+          let result = ''
+          if(contracts[i].deployable) {
+            const address = source.networks[network_id].address
+            contracts[i].config.Address = address
+            result += ' address ' + address + ' and'
+          }
+          
+          const abi = JSON.stringify(source.abi)          
+          contracts[i].config.Abi = abi
+          console.log(contracts[i].name + result + ' abi added in ' + configPath)
+          
       }
       
       fs.writeFileSync(configPath, JSON.stringify(appsettings, null, 2))
       
-      console.log('appsettings.json successful updated')
+      console.log(configPath + ' successful updated')
 
 } catch (err) {    
     console.error(err)    
