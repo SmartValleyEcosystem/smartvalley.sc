@@ -87,6 +87,24 @@ contract ScoringExpertsManager is Owned {
         }
     }
 
+    function setExperts(uint _projectId, uint[] _areas, address[] _experts) external onlyAdministrators {
+        for (uint i = 0; i < _areas.length; i++) {
+            uint area = _areas[i];
+            require(vacantExpertPositionCounts[_projectId][area] > 0);
+
+            uint offerState = offerStates[_projectId][area][expert];
+            require(offerState != 1);
+
+            address expert = _experts[i];
+            if (offerState == 0) {
+                offers[_projectId][area].push(expert);
+            }
+
+            offerStates[_projectId][area][expert] = 1;
+            vacantExpertPositionCounts[_projectId][area]--;
+        }
+    }
+
     function hasAnyPendingOffers(uint _projectId) private view returns (bool) {
         uint minimumTimestamp = now - offerExpirationPeriod;
         uint[] storage areas = projectAreas[_projectId];
@@ -117,14 +135,14 @@ contract ScoringExpertsManager is Owned {
 
     function reject(uint _projectId, uint _area) external {
         uint state = offerStates[_projectId][_area][msg.sender];
-        require(state > 0 && (now - state) < offerExpirationPeriod);
+        require(state > 2 && (now - state) < offerExpirationPeriod);
 
         offerStates[_projectId][_area][msg.sender] = 2;
     }
 
     function accept(uint _projectId, uint _area) external {
         uint state = offerStates[_projectId][_area][msg.sender];
-        require(state > 0 && (now - state) < offerExpirationPeriod);
+        require(state > 2 && (now - state) < offerExpirationPeriod);
         require(vacantExpertPositionCounts[_projectId][_area] > 0);
 
         offerStates[_projectId][_area][msg.sender] = 1;
