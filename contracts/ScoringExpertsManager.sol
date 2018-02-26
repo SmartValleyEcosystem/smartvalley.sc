@@ -105,6 +105,39 @@ contract ScoringExpertsManager is Owned {
         }
     }
 
+    function getOffers(uint _projectId) external view returns(uint[] _areas, address[] _experts, uint[] _states) {
+        uint offersCount = getOffersCount(_projectId);
+        _areas = new uint[](offersCount);
+        _states = new uint[](offersCount);
+        _experts = new address[](offersCount);
+
+        uint currentOfferIndex = 0;
+        uint[] storage areas = projectAreas[_projectId];
+        for (uint i = 0; i < areas.length; i++) {
+            uint area = areas[i];
+            address[] storage areaOffers = offers[_projectId][area];
+            for (uint j = 0; j < areaOffers.length; j++) {
+                address expert = areaOffers[j];
+
+                _areas[currentOfferIndex] = area;
+                _experts[currentOfferIndex] = expert;
+                _states[currentOfferIndex] = offerStates[_projectId][area][expert];
+
+                currentOfferIndex++;
+            }
+        }
+    }
+
+    function getOffersCount(uint _projectId) private view returns(uint) {
+        uint result = 0;
+        uint[] storage areas = projectAreas[_projectId];
+        for (uint i = 0; i < areas.length; i++) {
+            uint area = areas[i];
+            result += offers[_projectId][area].length;
+        }
+        return result;
+    }
+
     function hasAnyPendingOffers(uint _projectId) private view returns (bool) {
         uint minimumTimestamp = now - offerExpirationPeriod;
         uint[] storage areas = projectAreas[_projectId];
