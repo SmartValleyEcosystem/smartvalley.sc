@@ -139,13 +139,12 @@ contract ScoringExpertsManager is Owned {
     }
 
     function hasAnyPendingOffers(uint _projectId) private view returns (bool) {
-        uint minimumTimestamp = now - offerExpirationPeriod;
         uint[] storage areas = projectAreas[_projectId];
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
             address[] storage areaOffers = offers[_projectId][area];
             for (uint j = 0; j < areaOffers.length; j++) {
-                if (offerStates[_projectId][area][areaOffers[j]] > minimumTimestamp)
+                if (offerStates[_projectId][area][areaOffers[j]] > now)
                     return true;
             }
         }
@@ -161,21 +160,19 @@ contract ScoringExpertsManager is Owned {
             address expert = expertsRegistry.areaExpertsMap(_area, indices[i]);
             require(offerStates[_projectId][_area][expert] == 0);
 
-            offerStates[_projectId][_area][expert] = now;
+            offerStates[_projectId][_area][expert] = now + offerExpirationPeriod;
             offers[_projectId][_area].push(expert);
         }
     }
 
     function reject(uint _projectId, uint _area) external {
-        uint state = offerStates[_projectId][_area][msg.sender];
-        require(state > 2 && (now - state) < offerExpirationPeriod);
+        require(offerStates[_projectId][_area][msg.sender] > now);
 
         offerStates[_projectId][_area][msg.sender] = 2;
     }
 
     function accept(uint _projectId, uint _area) external {
-        uint state = offerStates[_projectId][_area][msg.sender];
-        require(state > 2 && (now - state) < offerExpirationPeriod);
+        require(offerStates[_projectId][_area][msg.sender] > now);
         require(vacantExpertPositionCounts[_projectId][_area] > 0);
 
         offerStates[_projectId][_area][msg.sender] = 1;
