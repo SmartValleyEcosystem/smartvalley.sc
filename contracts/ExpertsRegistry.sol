@@ -8,6 +8,7 @@ contract ExpertsRegistry is Owned {
         bool exists;
         bool enabled;
         mapping(uint => ExpertArea) areas;
+        bytes32 applicationHash;
     }
 
     struct ExpertArea {
@@ -18,7 +19,7 @@ contract ExpertsRegistry is Owned {
 
     struct Application {
         address expert;
-        uint area;
+        uint area;        
     }
 
     mapping(uint => address[]) public areaExpertsMap;
@@ -47,14 +48,16 @@ contract ExpertsRegistry is Owned {
         availableAreas = _areas;
     }
 
-    function apply(uint[] _areas) external {
-        require(_areas.length > 0);
+    function apply(uint[] _areas, bytes32 applicationHash) external {
+        require(_areas.length > 0 && applicationHash.length > 0);
 
+        expertsMap[msg.sender].applicationHash = applicationHash;
+        
         for (uint i = 0; i < _areas.length; i++) {
             uint area = _areas[i];
             require(!expertsMap[msg.sender].areas[area].approved);
 
-            expertsMap[msg.sender].areas[area].applied = true;
+            expertsMap[msg.sender].areas[area].applied = true;           
             applications.push(Application(msg.sender, area));
         }
     }
