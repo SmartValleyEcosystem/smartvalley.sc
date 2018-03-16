@@ -1,7 +1,6 @@
-pragma solidity ^ 0.4.19;
+pragma solidity ^ 0.4.18;
 
 import "./Owned.sol";
-import "./SmartValleyToken.sol";
 import "./ScoringExpertsManager.sol";
 
 contract Scoring is Owned {
@@ -19,8 +18,6 @@ contract Scoring is Owned {
         mapping(address => bool) experts;
     }
 
-    SmartValleyToken public token;
-
     address public author;
     int public score;
     Estimate[] public estimates;
@@ -28,14 +25,15 @@ contract Scoring is Owned {
     uint[] public areas;
     uint public scoredAreasCount;
 
-    function Scoring(address _author, address _tokenAddress, uint[] _areas, uint[] _areaExpertCounts) public {
+    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
             areaScorings[areas[i]].expertsCount = _areaExpertCounts[i];
         }
-        setToken(_tokenAddress);
     }
+
+    function() public payable {}
 
     function submitEstimates(address _expert, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes, uint _estimateRewardWEI) external onlyOwner {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
@@ -50,7 +48,7 @@ contract Scoring is Owned {
         if (areaScoring.submissionsCount == areaScoring.expertsCount)
             scoredAreasCount++;
 
-        token.transfer(_expert, _estimateRewardWEI);
+        _expert.transfer(_estimateRewardWEI);
 
         for (uint i = 0; i < _questionIds.length; i++) {
             estimates.push(Estimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]));
@@ -95,12 +93,7 @@ contract Scoring is Owned {
             _areaResults[i] = areaScoring.submissionsCount == areaScoring.expertsCount;
         }
     }
-
-    function setToken(address _tokenAddress) public onlyOwner {
-        require(_tokenAddress != 0);
-        token = SmartValleyToken(_tokenAddress);
-    }
-
+    
     function calculateScore() private view returns(int) {
         int sum = 0;
         for (uint i = 0; i < areas.length; i++) {
