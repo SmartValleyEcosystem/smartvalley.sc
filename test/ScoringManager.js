@@ -11,11 +11,19 @@ contract('ScoringManager', async function(accounts) {
     let administratorsRegistry;
     let expertsRegistry;
     let randomGenerator;
-    let scoringExpertsManager;   
-    let scoringCreationCost = 12;
-    let estimateReward = 1;
+    let scoringExpertsManager;  
+     
     let areas = [1, 2, 3, 4];
+    let areaEstimateRewards = [1 ,1 ,3 ,1];
     var areaExperts = [3, 3, 3, 3];    
+
+    function getScoringCost() {
+        cost = null;
+        for (i = 0; i < areas.length; i++) {
+            cost += areaExperts[i] * areaEstimateRewards[i];
+        }        
+        return web3.toWei(cost);
+    }
 
     beforeEach(async function(){
         owner = accounts[8];
@@ -23,9 +31,15 @@ contract('ScoringManager', async function(accounts) {
         administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
         expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, areas, {from: owner});      
         randomGenerator = await RandomGenerator.new({from: owner});      
-        scoringExpertsManager = await ScoringExpertsManagerMock.new(3, 2, expertsRegistry.address, administratorsRegistry.address, {from: owner});           
-        manager = await ScoringManagerMock.new(scoringCreationCost, estimateReward, scoringExpertsManager.address, {from: owner});
+        scoringExpertsManager = await ScoringExpertsManagerMock.new(3, 2, expertsRegistry.address, administratorsRegistry.address, {from: owner});    
+        
+        rewardsWei = [];
+        for (i = 0; i < areas.length; i++) {
+            rewardsWei.push(web3.toWei(areaEstimateRewards[i]))
+        }        
       
+        manager = await ScoringManagerMock.new(scoringExpertsManager.address, areas, rewardsWei, {from: owner});
+       
         external_id = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         await administratorsRegistry.add(owner, {from: owner});
@@ -41,7 +55,7 @@ contract('ScoringManager', async function(accounts) {
     it('project shouldn\'t created if ether not enough' , async function() {              
         let error = null;
         try {
-            await manager.start(external_id, areas, areaExperts, {from: accounts[9], value: web3.toWei(1)});
+            await manager.start(external_id, areas, areaExperts, {from: accounts[9], value: web3.toWei(0.1)});
         } catch (e){
             console.log('ERROR: ' + e);
             error = e;
@@ -51,7 +65,8 @@ contract('ScoringManager', async function(accounts) {
     });
 
     it('start -> add new project with ext_id : get project address from mapping and check project contract', async function() {      
-        await manager.start(external_id, areas, areaExperts, {from: owner, value: web3.toWei(scoringCreationCost)});      
+        var scoringCreationCost = getScoringCost();
+        await manager.start(external_id, areas, areaExperts, {from: owner, value: scoringCreationCost});      
         var projectAddressFromMapping = await manager.scoringsMap(external_id);
         var projectAddressFromArray = await manager.scorings(0);
 
@@ -61,10 +76,9 @@ contract('ScoringManager', async function(accounts) {
         var scoring = ScoringMock.at(projectAddressFromArray);
         var address = await scoring.author();
 
-        var balance = await web3.eth.getBalance(scoring.address);
-        var scoringCreationCostWei = web3.toWei(scoringCreationCost);
+        var balance = await web3.eth.getBalance(scoring.address);      
 
-        assert.equal(+balance, scoringCreationCostWei, scoringCreationCostWei + 'project balance exptected');     
+        assert.equal(+balance, scoringCreationCost, scoringCreationCost + 'project balance exptected');     
         assert.equal(address.toLowerCase(), owner, 'project author address is not an account[8]');
     });
 });

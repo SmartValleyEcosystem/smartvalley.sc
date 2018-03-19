@@ -8,12 +8,17 @@ contract('Scoring', async function (accounts) {
     let etherAmount = 12 * (10 ** 18);
     let reward = 1 * (10 ** 18);
     let areas = [1, 2, 3, 4];
+    let areaEstimateRewards = [1 ,1 ,3 ,1];
     let areaExpertCounts = [3, 3, 3, 3];
 
     beforeEach(async function () {
+        rewardsWei = [];
+        for (i = 0; i < areas.length; i++) {
+            rewardsWei.push(web3.toWei(areaEstimateRewards[i]))
+        } 
         owner = accounts[9];
         scoringManager = accounts[8];            
-        scoring = await ScoringMock.new(areas, areaExpertCounts, { from: scoringManager });
+        scoring = await ScoringMock.new(areas, areaExpertCounts, rewardsWei,{ from: scoringManager });
         await web3.eth.sendTransaction({from:accounts[8], to:scoring.address, value: web3.toWei(4, "ether")});      
     });
 
@@ -23,9 +28,9 @@ contract('Scoring', async function (accounts) {
         var scores = [10, 5, 0];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3")];
 
-        var initialBalance = await web3.eth.getBalance(accounts[0])
-        await scoring.submitEstimates(accounts[0], area, questions, scores, commentHashes, reward, {from: scoringManager});
-        var balance =await web3.eth.getBalance(accounts[0]);       
+        var initialBalance = await web3.eth.getBalance(accounts[0]);        
+        await scoring.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoringManager});
+        var balance = await web3.eth.getBalance(accounts[0]);          
         assert.notEqual(+initialBalance, +balance);
     });
 

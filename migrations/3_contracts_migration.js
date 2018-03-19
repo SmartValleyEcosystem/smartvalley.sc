@@ -15,12 +15,21 @@ module.exports = function(deployer) {
   var maxScores =      [6, 10, 3,   0, 10, 15, 8, 10, 10,  7,  6,  5, 10];
 
   let areas = [1, 2, 3, 4];
+  let areaEstimateRewards = [1, 1, 1, 1];
   
   let voting; 
   let scoring;
   let scoringExpertsManager;
   let expertsRegistry;
   let administratorsRegistry;
+
+  function getRewards() {
+    rewardsWei = [];
+    for (i = 0; i < areas.length; i++) {
+        rewardsWei.push(web3.toWei(areaEstimateRewards[i]))
+    }  
+    return rewardsWei;
+  }
 
   if(deployer.network.includes('mock_')) {
     deployer.deploy(AdministratorsRegistry)
@@ -50,7 +59,7 @@ module.exports = function(deployer) {
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;    
-      return deployer.deploy(ScoringManagerMock, 120, 10, scoringExpertsManager.address, {overwrite: false})
+      return deployer.deploy(ScoringManagerMock, scoringExpertsManager.address, areas, getRewards(), {overwrite: false})
     })
     .then(() => {
       return ScoringManagerMock.deployed();
@@ -88,7 +97,7 @@ module.exports = function(deployer) {
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;   
-      return deployer.deploy(ScoringManager, 120, 10, scoringExpertsManager.address);
+      return deployer.deploy(ScoringManager, scoringExpertsManager.address, areas, getRewards());
     })
     .then(() => {
       return ScoringManager.deployed();

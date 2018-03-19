@@ -12,6 +12,7 @@ contract Scoring is Owned {
     }
 
     struct AreaScoring {
+        uint estimateRewardWEI;
         uint expertsCount;
         int sum;
         uint submissionsCount;
@@ -25,17 +26,18 @@ contract Scoring is Owned {
     uint[] public areas;
     uint public scoredAreasCount;
 
-    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts) public {
+    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
             areaScorings[areas[i]].expertsCount = _areaExpertCounts[i];
+            areaScorings[areas[i]].estimateRewardWEI = _areaEstimateRewardsWEI[i];
         }
     }
 
     function() public payable {}
 
-    function submitEstimates(address _expert, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes, uint _estimateRewardWEI) external onlyOwner {
+    function submitEstimates(address _expert, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external onlyOwner {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
         
         AreaScoring storage areaScoring = areaScorings[_area];
@@ -48,7 +50,7 @@ contract Scoring is Owned {
         if (areaScoring.submissionsCount == areaScoring.expertsCount)
             scoredAreasCount++;
 
-        _expert.transfer(_estimateRewardWEI);
+        _expert.transfer(areaScoring.estimateRewardWEI);
 
         for (uint i = 0; i < _questionIds.length; i++) {
             estimates.push(Estimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]));

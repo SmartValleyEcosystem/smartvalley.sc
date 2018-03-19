@@ -13,25 +13,36 @@ contract ScoringManager is Owned {
     
     ScoringExpertsManager public scoringExpertsManager;
 
-    uint public scoringCostWEI;
-    uint public estimateRewardWEI;
-
+    mapping(uint => uint) public estimateRewardsInAreaMap;   
     mapping(uint => Question) public questionsMap;
 
     address[] public scorings;
     mapping(uint256 => address) public scoringsMap;
 
-    function ScoringManager(uint _scoringCost, uint _estimateReward, address _scoringExpertsManagerAddress) public {        
-        setScoringCost(_scoringCost);
-        setEstimateReward(_estimateReward);        
+    function ScoringManager(address _scoringExpertsManagerAddress, uint[] _areas, uint[] _areaEstimateRewardsWEI) public {         
+        require(_areas.length == _areaEstimateRewardsWEI.length);  
+
         setScoringExpertsManager(_scoringExpertsManagerAddress);
+
+        for (uint i = 0; i < _areas.length; i++) {
+            require(_areaEstimateRewardsWEI[i] > 0);
+            setEstimateRewardInArea(_areas[i], _areaEstimateRewardsWEI[i]); 
+        }
     }
 
     function start(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) payable external {
-        require(msg.value >= scoringCostWEI);
         require(_areas.length == _areaExpertCounts.length);
 
-        Scoring scoring = new Scoring(msg.sender, _areas, _areaExpertCounts);
+        var scoringCost = getScoringCost(_areas, _areaExpertCounts);
+        require(msg.value == scoringCost);
+        
+        uint[] memory rewards = new uint[](_areas.length);
+
+        for (uint i = 0; i < _areas.length; i++) {
+            rewards[i] = estimateRewardsInAreaMap[_areas[i]];
+        }
+
+        Scoring scoring = new Scoring(msg.sender, _areas, _areaExpertCounts, rewards);
         scorings.push(scoring);
         scoringsMap[_projectId] = scoring;
 
@@ -44,13 +55,20 @@ contract ScoringManager is Owned {
         require(_areas.length == _areaExpertCounts.length);
         require(VotingSprint(_votingSpringAddress).isAccepted(_projectId));
 
-        Scoring scoring = new Scoring(msg.sender, _areas, _areaExpertCounts);
+        uint[] memory rewards = new uint[](_areas.length);
+
+        for (uint i = 0; i < _areas.length; i++) {
+            rewards[i] = estimateRewardsInAreaMap[_areas[i]];
+        }
+
+        Scoring scoring = new Scoring(msg.sender, _areas, _areaExpertCounts, rewards);
         scorings.push(scoring);
         scoringsMap[_projectId] = scoring;
 
         scoringExpertsManager.selectExperts(_projectId, _areas, _areaExpertCounts);
 
-        scoring.transfer(scoringCostWEI);       
+        var scoringCost = getScoringCost(_areas, _areaExpertCounts);
+        scoring.transfer(scoringCost);       
     }
 
     function submitEstimates(uint _projectId, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external {
@@ -64,7 +82,7 @@ contract ScoringManager is Owned {
         }
 
         Scoring scoring = Scoring(scoringsMap[_projectId]);
-        scoring.submitEstimates(msg.sender, _area, _questionIds, _scores, _commentHashes, estimateRewardWEI);
+        scoring.submitEstimates(msg.sender, _area, _questionIds, _scores, _commentHashes);
     }
 
     function setQuestions(uint[] _questionIds, int[] _minScores, int[] _maxScores) external onlyOwner {
@@ -98,11 +116,17 @@ contract ScoringManager is Owned {
         scoringExpertsManager = ScoringExpertsManager(_scoringExpertsManagerAddress);
     }
 
-    function setScoringCost(uint _scoringCost) public onlyOwner {
-        scoringCostWEI = _scoringCost * 1 ether;
+    function setEstimateRewardInArea(uint _area, uint _estimateRewardWEI) public onlyOwner {
+        estimateRewardsInAreaMap[_area] = _estimateRewardWEI;
     }
 
-    function setEstimateReward(uint _estimateReward) public onlyOwner {
-        estimateRewardWEI = _estimateReward * 1 ether;
+    function getScoringCost(uint[] _areas, uint[] _areaExpertCounts) private returns(uint) {
+        uint cost = 0;
+
+        for (uint i = 0; i < _areas.length; i++) {
+            var reward = estimateRewardsInAreaMap[_areas[i]];
+            cost += reward * _areaExpertCounts[i];           
+        }
+        return cost;
     }
 }
