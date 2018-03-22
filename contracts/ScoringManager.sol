@@ -120,6 +120,13 @@ contract ScoringManager is Owned {
         estimateRewardsInAreaMap[_area] = _estimateRewardWEI;
     }
 
+    function setEstimateRewards(uint[] _areas, uint[] _estimateRewardsWEI) public onlyOwner {
+        require(_areas.length == _estimateRewardsWEI.length);
+        for (uint i = 0; i < _areas.length; i++) {
+            setEstimateRewardInArea(_areas[i], _estimateRewardsWEI[i]);
+        }
+    }
+
     function getScoringCost(uint[] _areas, uint[] _areaExpertCounts) private returns(uint) {
         uint cost = 0;
 
