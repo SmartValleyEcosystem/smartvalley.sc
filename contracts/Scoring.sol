@@ -95,6 +95,17 @@ contract Scoring is Owned {
             _areaResults[i] = areaScoring.submissionsCount == areaScoring.expertsCount;
         }
     }
+
+    function getScoringCost() external view returns(uint _scoringCost) {
+        _scoringCost = 0;
+
+        for (uint i = 0; i < areas.length; i++) {           
+          uint expertsCount = areaScorings[areas[i]].expertsCount;
+          uint areaEstimateRewardsWEI = areaScorings[areas[i]].estimateRewardWEI;
+
+          _scoringCost += areaEstimateRewardsWEI * expertsCount;
+        }
+    }
     
     function calculateScore() private view returns(int) {
         int sum = 0;

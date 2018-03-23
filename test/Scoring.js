@@ -11,6 +11,14 @@ contract('Scoring', async function (accounts) {
     let areaEstimateRewards = [1 ,1 ,3 ,1];
     let areaExpertCounts = [3, 3, 3, 3];
 
+    function getScoringCost() {
+        cost = null;
+        for (i = 0; i < areas.length; i++) {
+            cost += areaExpertCounts[i] * areaEstimateRewards[i];
+        }        
+        return web3.toWei(cost);
+    }
+
     beforeEach(async function () {
         rewardsWei = [];
         for (i = 0; i < areas.length; i++) {
@@ -32,6 +40,12 @@ contract('Scoring', async function (accounts) {
         await scoring.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoringManager});
         var balance = await web3.eth.getBalance(accounts[0]);          
         assert.notEqual(+initialBalance, +balance);
+    });
+
+    it('Should get correct scoring cost', async function () {            
+        var contractCost = await scoring.getScoringCost();
+        var cost = getScoringCost();
+        assert.equal(+contractCost, +cost, +contractCost +' should be equal '+ +cost);
     });
 
     // it('Initial state should be correct', async function () {
