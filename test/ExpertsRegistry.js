@@ -304,4 +304,21 @@ contract('ExpertsRegistry', async function(accounts) {
             3,
             'there should be the same amount of experts in area 2');
     });
+
+    it('[mock] add experts in list to registry', async function () {
+        const expertList = [expert1, expert2, expert3];
+        const areas =       [13,      123,     1234];
+        console.log('addExperts')        
+        await expertsRegistry.addExperts(expertList, areas, {from: owner})
+        const expertsInArea1 = await expertsRegistry.areaExpertsMap(1, 0);
+        const expertsInArea2 = await expertsRegistry.areaExpertsMap(2, 0);
+        const expertsInArea3 = await expertsRegistry.areaExpertsMap(3, 0);
+        const expertsInArea4 = await expertsRegistry.areaExpertsMap(4, 0);
+
+        console.log(expertsInArea1)
+        console.log(expertsInArea2)
+        console.log(expertsInArea3)
+        console.log(expertsInArea4)
+
+    })
 });
