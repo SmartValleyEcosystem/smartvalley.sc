@@ -7,42 +7,46 @@ contract Scoring is Owned {
     struct Estimate {
         uint questionId;
         address expertAddress;
-        int score;
+        uint score;
         bytes32 commentHash;
     }
 
     struct AreaScoring {
         uint estimateRewardWEI;
         uint expertsCount;
-        int sum;
+        uint maxScore;
+        uint maxSum;
+        uint sum;
         uint submissionsCount;
         mapping(address => bool) experts;
     }
 
+    uint public SCORE_PRECISION = 2;
+
     address public author;
-    int public score;
+    uint public score;
     Estimate[] public estimates;
     mapping(uint => AreaScoring) public areaScorings;
     uint[] public areas;
     uint public scoredAreasCount;
 
-    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI) public {
+    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
             areaScorings[areas[i]].expertsCount = _areaExpertCounts[i];
             areaScorings[areas[i]].estimateRewardWEI = _areaEstimateRewardsWEI[i];
+            areaScorings[areas[i]].maxScore = _areaMaxScores[i];
         }
     }
 
     function() public payable {}
 
-    function submitEstimates(address _expert, uint _area, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external onlyOwner {
+    function submitEstimates(address _expert, uint _area, uint[] _questionIds, uint[] _questionWeights, uint[] _scores, bytes32[] _commentHashes) external onlyOwner {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
-        
+
         AreaScoring storage areaScoring = areaScorings[_area];
-        require(!areaScoring.experts[_expert]);
-        require(areaScoring.submissionsCount < areaScoring.expertsCount);
+        require(!areaScoring.experts[_expert] && areaScoring.submissionsCount < areaScoring.expertsCount);
 
         areaScoring.experts[_expert] = true;
         areaScoring.submissionsCount++;
@@ -50,12 +54,14 @@ contract Scoring is Owned {
         if (areaScoring.submissionsCount == areaScoring.expertsCount)
             scoredAreasCount++;
 
-        _expert.transfer(areaScoring.estimateRewardWEI);
-
         for (uint i = 0; i < _questionIds.length; i++) {
-            estimates.push(Estimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]));
-            areaScoring.sum += _scores[i];
+            addEstimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]);
+
+            areaScoring.sum += _scores[i] * _questionWeights[i];
+            areaScoring.maxSum += _scores[i] * 2;
         }
+
+        _expert.transfer(areaScoring.estimateRewardWEI);
 
         if (scoredAreasCount != areas.length)
             return;
@@ -63,9 +69,9 @@ contract Scoring is Owned {
         score = calculateScore();
     }
 
-    function getEstimates() external view returns(uint[] _questions, int[] _scores, address[] _experts) {
+    function getEstimates() external view returns(uint[] _questions, uint[] _scores, address[] _experts) {
         uint[] memory questions = new uint[](estimates.length);
-        int[] memory scores = new int[](estimates.length);
+        uint[] memory scores = new uint[](estimates.length);
         address[] memory experts = new address[](estimates.length);
 
         for (uint i = 0; i < estimates.length; i++) {
@@ -85,33 +91,45 @@ contract Scoring is Owned {
         return areaScorings[_area].expertsCount;
     }
 
-    function getResults() external view returns(bool _isScored, int _score, uint[] _areas, bool[] _areaResults) {
+    function getResults() external view returns(bool _isScored, uint _score, uint[] _areas, bool[] _areaResults, uint[] _areaScores) {
         _isScored = scoredAreasCount == areas.length;
         _score = score;
         _areas = areas;
         _areaResults = new bool[](areas.length);
         for (uint i = 0; i < _areas.length; i++) {
             AreaScoring storage areaScoring = areaScorings[_areas[i]];
-            _areaResults[i] = areaScoring.submissionsCount == areaScoring.expertsCount;
+            bool isCompleted = areaScoring.submissionsCount == areaScoring.expertsCount;
+            _areaResults[i] = isCompleted;
+            if (isCompleted) {
+                _areaScores[i] = getAreaScore(_areas[i]);
+            }
         }
     }
 
     function getScoringCost() external view returns(uint _scoringCost) {
         _scoringCost = 0;
 
-        for (uint i = 0; i < areas.length; i++) {           
+        for (uint i = 0; i < areas.length; i++) {
           uint expertsCount = areaScorings[areas[i]].expertsCount;
           uint areaEstimateRewardsWEI = areaScorings[areas[i]].estimateRewardWEI;
 
           _scoringCost += areaEstimateRewardsWEI * expertsCount;
         }
     }
-    
-    function calculateScore() private view returns(int) {
-        int sum = 0;
+
+    function getAreaScore(uint _area) private view returns(uint) {
+        AreaScoring storage areaScoring = areaScorings[_area];
+        return (areaScoring.sum * (10 ** SCORE_PRECISION) / areaScoring.maxSum) * areaScoring.maxScore;
+    }
+
+    function addEstimate(uint _questionId, address _expertAddress, uint _score, bytes32 _commentHash) private {
+        estimates.push(Estimate(_questionId, _expertAddress, _score, _commentHash));
+    }
+
+    function calculateScore() private view returns(uint) {
+        uint sum = 0;
         for (uint i = 0; i < areas.length; i++) {
-            AreaScoring storage areaScoring = areaScorings[areas[i]];
-            sum += areaScoring.sum / int(areaScoring.expertsCount);
+            sum += getAreaScore(areas[i]);
         }
         return sum;
     }

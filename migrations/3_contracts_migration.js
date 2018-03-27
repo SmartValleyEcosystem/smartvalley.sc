@@ -9,14 +9,14 @@ var ScoringExpertsManager = artifacts.require("./ScoringExpertsManager.sol");
 var RandomGenerator = artifacts.require("./RandomGenerator.sol");
 
 module.exports = function(deployer) {
+  //                    ----------------- LAWYER ------------------     ------------------- HR -------------------     ---- TECH ----     ---------------------------------- ANALYST -----------------------------------     ----------------------------------- MARKETER ---------------------------------
+  var questions =       [1,  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,    14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,    25, 26, 27, 28,    29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,    49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68];
+  var questionWeights = [10, 3, 1, 4, 4, 2, 8, 4, 8,  4,  7,  3,  3,    10, 10,  3,  4,  7,  3,  6,  5,  5,  2,  3,     5,  3, 10,  5,    10, 10,  7,  5,  6,  2,  5,  2,  2,  5,  3, 10, 10,  7,  5,  3,  8,  5,  3,  5,     3,  7,  9,  9, 10,  6, 10,  9,  6,  4,  4,  4,  4,  6,  4,  6,  8,  3,  5,  7];
 
-  var questions =      [1,  2, 3,   4,  5,  6, 7,  8,  9, 10, 11, 12, 13];
-  var minScores =      [0,  0, 0, -15,  0,  0, 0,  0,  0,  0,  0,  0,  0];
-  var maxScores =      [6, 10, 3,   0, 10, 15, 8, 10, 10,  7,  6,  5, 10];
+  let areas =               [ 1,  2,  3,  4,  5];
+  let areaMaxScores =       [16, 23, 17, 27, 17];
+  let areaEstimateRewards = [ 1,  1,  1,  1,  1];
 
-  let areas = [1, 2, 3, 4];
-  let areaEstimateRewards = [1, 1, 1, 1];
-  
   let voting; 
   let scoring;
   let scoringExpertsManager;
@@ -58,15 +58,15 @@ module.exports = function(deployer) {
       return ScoringExpertsManager.deployed();
     })
     .then(scoringExpertsManagerInstance => {
-      scoringExpertsManager = scoringExpertsManagerInstance;    
-      return deployer.deploy(ScoringManagerMock, scoringExpertsManager.address, areas, getRewards(), {overwrite: false})
+      scoringExpertsManager = scoringExpertsManagerInstance;
+      return deployer.deploy(ScoringManagerMock, scoringExpertsManager.address, areas, getRewards(), areaMaxScores, {overwrite: false})
     })
     .then(() => {
       return ScoringManagerMock.deployed();
     })
     .then((scoringInstance) => {
-      scoring = scoringInstance;      
-      scoring.setQuestions(questions, minScores, maxScores);      
+      scoring = scoringInstance;
+      scoring.setQuestions(questions, questionWeights);
       scoringExpertsManager.setScoringManager(scoring.address);
     });
   } else {
@@ -96,15 +96,15 @@ module.exports = function(deployer) {
       return ScoringExpertsManager.deployed();
     })
     .then(scoringExpertsManagerInstance => {
-      scoringExpertsManager = scoringExpertsManagerInstance;   
-      return deployer.deploy(ScoringManager, scoringExpertsManager.address, areas, getRewards());
+      scoringExpertsManager = scoringExpertsManagerInstance;
+      return deployer.deploy(ScoringManager, scoringExpertsManager.address, areas, getRewards(), areaMaxScores);
     })
     .then(() => {
       return ScoringManager.deployed();
     })
     .then((scoringInstance) => {
-      scoring = scoringInstance;      
-      scoring.setQuestions(questions, minScores, maxScores);      
+      scoring = scoringInstance;
+      scoring.setQuestions(questions, questionWeights);
       scoringExpertsManager.setScoringManager(scoring.address);
     });
   }
