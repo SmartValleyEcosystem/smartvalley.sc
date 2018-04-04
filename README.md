@@ -10,7 +10,7 @@ In case you have any questions or suggestions, you can always create an issue an
 - ~~Submission of test scoring application~~
 - ~~Scoring of applications by experts and saving scoring results into the blockchain~~
 - ~~Voting for scoring financing by SVT tokens holders~~
-- Algorithm of random selection of an expert for scoring inside smart contracts and preparation for beta
+- ~~Algorithm of random selection of an expert for scoring inside smart contracts and preparation for beta~~
 - Internal market for sale of projects tokens for SVT tokens with 80% discount
 - Rating system for promotion and penalties for experts
 
