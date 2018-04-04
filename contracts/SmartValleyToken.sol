@@ -59,8 +59,8 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         _;
     }
 
-    modifier hasEnoughTokens(address _from, uint _value) {      
-        var frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);                   
+    modifier hasEnoughTokens(address _from, uint _value) {
+        uint frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);
         require(balances[_from] >= frozenBalance && balances[_from] - frozenBalance >= _value);
         _;
     }   
@@ -87,7 +87,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     }
 
     function getAvailableBalance (address _from) external constant returns(uint) { 
-        var frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);
+        uint frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);
         if (balanceOf(_from) < frozenBalance) {
             return 0;
         }
@@ -121,7 +121,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         super.transfer(_to, _value);
         
         if (knownContracts[_to] == true) {
-            var knownContract = KnownContract(_to);
+            KnownContract knownContract = KnownContract(_to);
             knownContract.transfered(msg.sender, _value, new bytes32[](0));
         }
     }
@@ -130,7 +130,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         super.transferFrom(_from, _to, _value);
 
         if (knownContracts[_to] == true) {
-            var knownContract = KnownContract(_to);
+            KnownContract knownContract = KnownContract(_to);
             knownContract.transfered(_from, _value, new bytes32[](0));
         }
     }
@@ -148,7 +148,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
     }
 
     function transferToKnownContract(address _to, uint256 _value, bytes32[] _data) external whenTransferAllowed onlyKnownContracts(_to) {
-        var knownContract = KnownContract(_to);
+        KnownContract knownContract = KnownContract(_to);
         super.transfer(_to, _value);
         knownContract.transfered(msg.sender, _value, _data);
     }

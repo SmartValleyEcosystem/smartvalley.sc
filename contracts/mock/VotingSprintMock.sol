@@ -9,7 +9,7 @@ contract VotingSprintMock is VotingSprint {
 
     function rewindTimeAndInvestors(uint _days, address[] _investors) public {
         for (uint i = 0; i < _investors.length; i++) {   
-            var balanceFreezerMock = BalanceFreezerMock(freezer);
+            BalanceFreezerMock balanceFreezerMock = BalanceFreezerMock(freezer);
             balanceFreezerMock.rewindTime(_investors[i], _days);
         }       
         rewindTime(_days);
@@ -17,6 +17,6 @@ contract VotingSprintMock is VotingSprint {
 
     function rewindTime(uint _days) public {
         startDate = startDate + _days * 1 days;
-        endDate = endDate + _days * 1 days;        
+        endDate = endDate + _days * 1 days;
     }
 }

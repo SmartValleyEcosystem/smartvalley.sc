@@ -15,7 +15,7 @@ contract BalanceFreezer {
         //remove not actual records
         FrozenBalance[] storage currentFrozenBalances = frozenBalances[tx.origin];
         for (uint i = 0; i < currentFrozenBalances.length; i++) {
-            var currentFrozenBalance = currentFrozenBalances[i];
+            FrozenBalance storage currentFrozenBalance = currentFrozenBalances[i];
             if (now >= currentFrozenBalance.endTime) {
                 currentFrozenBalances[i] = currentFrozenBalances[currentFrozenBalances.length - 1];
                 currentFrozenBalances.length --;
@@ -30,7 +30,7 @@ contract BalanceFreezer {
         FrozenBalance[] memory currentFrozenBalances = frozenBalances[_address];
         uint frozenAmount = 0;
         for (uint i = 0; i < currentFrozenBalances.length; i++) {
-            var currentFrozenBalance = currentFrozenBalances[i];
+            FrozenBalance memory currentFrozenBalance = currentFrozenBalances[i];
             if (now < currentFrozenBalance.endTime) {
                 frozenAmount += currentFrozenBalance.amount;
             }

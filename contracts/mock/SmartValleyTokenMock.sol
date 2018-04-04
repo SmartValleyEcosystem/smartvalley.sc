@@ -7,6 +7,6 @@ contract SmartValleyTokenMock is SmartValleyToken {
         for (uint i = 0; i < _accounts.length; i++) {
             balances[_accounts[i]] = _initialbalance;
             totalSupply += _initialbalance;
-        }        
+        }
     }
 }

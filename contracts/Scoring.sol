@@ -1,62 +1,77 @@
 pragma solidity ^ 0.4.18;
 
 import "./Owned.sol";
-import "./SmartValleyToken.sol";
+import "./ScoringExpertsManager.sol";
 
 contract Scoring is Owned {
     struct Estimate {
         uint questionId;
         address expertAddress;
-        int score;
+        uint score;
         bytes32 commentHash;
     }
 
-    uint public constant REQUIRED_SUBMISSIONS_IN_AREA = 3;
-    uint public constant REQUIRED_SUBMISSIONS = REQUIRED_SUBMISSIONS_IN_AREA * 4;
+    struct AreaScoring {
+        uint estimateRewardWEI;
+        uint expertsCount;
+        uint maxScore;
+        uint maxSum;
+        uint sum;
+        uint submissionsCount;
+        mapping(address => bool) experts;
+    }
+
+    uint public SCORE_PRECISION = 2;
 
     address public author;
-    bool public isScored;
-    int public score;
+    uint public score;
     Estimate[] public estimates;
-    mapping(uint => uint) public areaSubmissionsCounters;
-    mapping(uint => mapping(address => bool)) public expertsByArea;
-    uint public submissionsCount;
-    SmartValleyToken public svt;
-    uint public estimateRewardWEI;
+    mapping(uint => AreaScoring) public areaScorings;
+    uint[] public areas;
+    uint public scoredAreasCount;
 
-    function Scoring(address _author, address _svtAddress, uint _estimateRewardWEI) public {
+    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
         author = _author;
-        setTokenAddress(_svtAddress);
-        estimateRewardWEI = _estimateRewardWEI;
-    }    
+        areas = _areas;
+        for (uint i = 0; i < _areas.length; i++) {
+            areaScorings[areas[i]].expertsCount = _areaExpertCounts[i];
+            areaScorings[areas[i]].estimateRewardWEI = _areaEstimateRewardsWEI[i];
+            areaScorings[areas[i]].maxScore = _areaMaxScores[i];
+        }
+    }
 
-    function submitEstimates(address _expert, uint _expertiseArea, uint[] _questionIds, int[] _scores, bytes32[] _commentHashes) external onlyOwner {
-        require(!isScored);
-        require(!expertsByArea[_expertiseArea][_expert]);
-        require(areaSubmissionsCounters[_expertiseArea] < REQUIRED_SUBMISSIONS_IN_AREA);
+    function() public payable {}
 
+    function submitEstimates(address _expert, uint _area, uint[] _questionIds, uint[] _questionWeights, uint[] _scores, bytes32[] _commentHashes) external onlyOwner {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
-        expertsByArea[_expertiseArea][_expert] = true;
-        areaSubmissionsCounters[_expertiseArea]++;
-        submissionsCount++;
+        AreaScoring storage areaScoring = areaScorings[_area];
+        require(!areaScoring.experts[_expert] && areaScoring.submissionsCount < areaScoring.expertsCount);
 
-        svt.transfer(_expert, estimateRewardWEI);
+        areaScoring.experts[_expert] = true;
+        areaScoring.submissionsCount++;
+
+        if (areaScoring.submissionsCount == areaScoring.expertsCount)
+            scoredAreasCount++;
 
         for (uint i = 0; i < _questionIds.length; i++) {
-            estimates.push(Estimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]));
+            addEstimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]);
+
+            areaScoring.sum += _scores[i] * _questionWeights[i];
+            areaScoring.maxSum += _scores[i] * 2;
         }
 
-        if (submissionsCount != REQUIRED_SUBMISSIONS)
+        _expert.transfer(areaScoring.estimateRewardWEI);
+
+        if (scoredAreasCount != areas.length)
             return;
 
         score = calculateScore();
-        isScored = true;
     }
 
-    function getEstimates() external view returns(uint[] _questions, int[] _scores, address[] _experts) {
+    function getEstimates() external view returns(uint[] _questions, uint[] _scores, address[] _experts) {
         uint[] memory questions = new uint[](estimates.length);
-        int[] memory scores = new int[](estimates.length);
+        uint[] memory scores = new uint[](estimates.length);
         address[] memory experts = new address[](estimates.length);
 
         for (uint i = 0; i < estimates.length; i++) {
@@ -72,26 +87,50 @@ contract Scoring is Owned {
         _experts = experts;
     }
 
-    function getScoringInformation() external view returns(bool _isScored, int _score, bool _isScoredByHr, bool _isScoredByAnalyst, bool _isScoredByTech, bool _isScoredByLawyer) {
-        _isScored = isScored;
+    function getRequiredSubmissionsInArea(uint _area) external view returns(uint) {
+        return areaScorings[_area].expertsCount;
+    }
+
+    function getResults() external view returns(bool _isScored, uint _score, uint[] _areas, bool[] _areaResults, uint[] _areaScores) {
+        _isScored = scoredAreasCount == areas.length;
         _score = score;
-
-        _isScoredByHr = areaSubmissionsCounters[1] == REQUIRED_SUBMISSIONS_IN_AREA;
-        _isScoredByAnalyst = areaSubmissionsCounters[2] == REQUIRED_SUBMISSIONS_IN_AREA;
-        _isScoredByTech = areaSubmissionsCounters[3] == REQUIRED_SUBMISSIONS_IN_AREA;
-        _isScoredByLawyer = areaSubmissionsCounters[4] == REQUIRED_SUBMISSIONS_IN_AREA;
-    }
-
-    function calculateScore() internal view returns(int) {
-        int sum = 0;
-        for (uint i = 0; i < estimates.length; i++) {
-            sum += estimates[i].score;
+        _areas = areas;
+        _areaResults = new bool[](areas.length);
+        for (uint i = 0; i < _areas.length; i++) {
+            AreaScoring storage areaScoring = areaScorings[_areas[i]];
+            bool isCompleted = areaScoring.submissionsCount == areaScoring.expertsCount;
+            _areaResults[i] = isCompleted;
+            if (isCompleted) {
+                _areaScores[i] = getAreaScore(_areas[i]);
+            }
         }
-        return sum / int(REQUIRED_SUBMISSIONS_IN_AREA);
     }
 
-    function setTokenAddress(address _svtAddress) public onlyOwner {
-        require(_svtAddress != 0);
-        svt = SmartValleyToken(_svtAddress);
+    function getScoringCost() external view returns(uint _scoringCost) {
+        _scoringCost = 0;
+
+        for (uint i = 0; i < areas.length; i++) {
+          uint expertsCount = areaScorings[areas[i]].expertsCount;
+          uint areaEstimateRewardsWEI = areaScorings[areas[i]].estimateRewardWEI;
+
+          _scoringCost += areaEstimateRewardsWEI * expertsCount;
+        }
+    }
+
+    function getAreaScore(uint _area) private view returns(uint) {
+        AreaScoring storage areaScoring = areaScorings[_area];
+        return (areaScoring.sum * (10 ** SCORE_PRECISION) / areaScoring.maxSum) * areaScoring.maxScore;
+    }
+
+    function addEstimate(uint _questionId, address _expertAddress, uint _score, bytes32 _commentHash) private {
+        estimates.push(Estimate(_questionId, _expertAddress, _score, _commentHash));
+    }
+
+    function calculateScore() private view returns(uint) {
+        uint sum = 0;
+        for (uint i = 0; i < areas.length; i++) {
+            sum += getAreaScore(areas[i]);
+        }
+        return sum;
     }
 }

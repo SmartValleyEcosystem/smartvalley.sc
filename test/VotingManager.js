@@ -72,7 +72,7 @@ contract('VotingManager', async function(accounts) {
         {type: 0, count: 6, description: 'should create Voting Sprint if the previous sprint finished',
             async precondition() {
                 await fillProjectQueue(this.count);
-                await manager.createSprintMock(2, {from: owner});
+                await manager.createSprint(2, {from: owner});
                 var sprint_address = await manager.lastSprint();
                 var sprint = VotingSprintMock.at(sprint_address);
                 await sprint.rewindTime(-2);
@@ -144,7 +144,7 @@ contract('VotingManager', async function(accounts) {
 
         for(var i = 0; i < 3; i++) {
             await fillProjectQueue(4);
-            await manager.createSprintMock(2, {from: owner});
+            await manager.createSprint(2, {from: owner});
             var sprint = VotingSprintMock.at(await manager.lastSprint());
             sprints = await manager.getSprints();
             assert.equal(sprints.length, i + 1, 'error, queue length invalid');

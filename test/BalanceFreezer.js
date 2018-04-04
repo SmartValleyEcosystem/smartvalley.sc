@@ -19,4 +19,21 @@ contract('BalanceFreezer', async function (accounts) {
         assert.equal(frozenAmount1, 1000, 'FrozenAmount for acc1 should be equal to 1000 , actual: ' + frozenAmount1);
         assert.equal(frozenAmount2, 500, 'FrozenAmount for acc2 should be equal to 500 , actual: ' + frozenAmount2);
     });
+
+    it('Mock test rewindTime', async function() {        
+        await freezer.freeze(500, 4, {from: accounts[1]});        
+        await freezer.freeze(500, 4, {from: accounts[2]});
+
+        console.log('before');
+        console.log(await freezer.getFrozenAmount(accounts[1]));
+        console.log(await freezer.getFrozenAmount(accounts[2]));
+
+        freezer.rewindTime(accounts[1], -4);
+
+        console.log('after');
+        console.log(await freezer.getFrozenAmount(accounts[1]));
+        console.log(await freezer.getFrozenAmount(accounts[2]));
+
+
+    });
 });
