@@ -4,6 +4,7 @@ import "./Owned.sol";
 import "./Scoring.sol";
 import "./VotingSprint.sol";
 import "./ScoringExpertsManager.sol";
+import "./AdministratorsRegistry.sol";
 
 contract ScoringManager is Owned {
     ScoringExpertsManager public scoringExpertsManager;
@@ -15,15 +16,23 @@ contract ScoringManager is Owned {
     address[] public scorings;
     mapping(uint256 => address) public scoringsMap;
 
-    function ScoringManager(address _scoringExpertsManagerAddress, uint[] _areas, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
+    AdministratorsRegistry private administratorsRegistry;
+
+    function ScoringManager(address _scoringExpertsManagerAddress, address _administratorsRegistryAddress, uint[] _areas, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
         require(_areas.length == _areaEstimateRewardsWEI.length);
 
+        setAdministratorsRegistry(_administratorsRegistryAddress);
         setScoringExpertsManager(_scoringExpertsManagerAddress);
 
         for (uint i = 0; i < _areas.length; i++) {
             setEstimateRewardInArea(_areas[i], _areaEstimateRewardsWEI[i]);
             setAreaMaxScore(_areas[i], _areaMaxScores[i]);
         }
+    }
+
+    modifier onlyAdministrators {
+        require(administratorsRegistry.isAdministrator(msg.sender) || msg.sender == owner);
+        _;
     }
 
     function start(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) payable external {
@@ -117,6 +126,11 @@ contract ScoringManager is Owned {
         scoringExpertsManager = ScoringExpertsManager(_scoringExpertsManagerAddress);
     }
 
+    function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
+        require(_administratorsRegistryAddress != 0);
+        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);
+    }
+
     function setAreaMaxScore(uint _area, uint _value) public onlyOwner {
         require(_value > 0);
         areaMaxScoresMap[_area] = _value;
@@ -129,12 +143,12 @@ contract ScoringManager is Owned {
         }
     }
 
-    function setEstimateRewardInArea(uint _area, uint _estimateRewardWEI) public onlyOwner {
+    function setEstimateRewardInArea(uint _area, uint _estimateRewardWEI) public onlyAdministrators {
         require(_estimateRewardWEI > 0);
         estimateRewardsInAreaMap[_area] = _estimateRewardWEI;
     }
 
-    function setEstimateRewards(uint[] _areas, uint[] _estimateRewardsWEI) public onlyOwner {
+    function setEstimateRewards(uint[] _areas, uint[] _estimateRewardsWEI) public onlyAdministrators {
         require(_areas.length == _estimateRewardsWEI.length);
         for (uint i = 0; i < _areas.length; i++) {
             setEstimateRewardInArea(_areas[i], _estimateRewardsWEI[i]);

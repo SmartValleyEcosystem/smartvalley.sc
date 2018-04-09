@@ -15,8 +15,9 @@ contract('ScoringManager', async function(accounts) {
     let randomGenerator;
     let scoringExpertsManager;  
      
-    let areas = [1, 2, 3, 4];
-    let areaEstimateRewards = [0.1 ,0.1 ,0.1 ,0.1];
+    let areas = [ 1,  2,  3,  4,  5];
+    let areasMaxScore =  [16, 23, 17, 27, 17];
+    let areaEstimateRewards = [0.1, 0.1, 0.1, 0.1, 0.1];
     var areaExperts = [3, 3, 3, 3];     
     let expertList, expertAreasList;
 
@@ -48,9 +49,9 @@ contract('ScoringManager', async function(accounts) {
         for (i = 0; i < areas.length; i++) {
             rewardsWei.push(web3.toWei(areaEstimateRewards[i], 'ether'))
         }        
-      
-        scoringManager = await ScoringManagerMock.new(scoringExpertsManager.address, areas, rewardsWei, {from: owner});
-       
+        
+        scoringManager = await ScoringManagerMock.new(scoringExpertsManager.address, administratorsRegistry.address, areas, rewardsWei, areasMaxScore, {from: owner});
+     
         external_id = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         await administratorsRegistry.add(owner, {from: owner});        
