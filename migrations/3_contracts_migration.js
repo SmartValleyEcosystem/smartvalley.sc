@@ -97,7 +97,7 @@ module.exports = function(deployer) {
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
-      return deployer.deploy(ScoringManager, scoringExpertsManager.address, administratorsRegistry, areas, getRewards(), areaMaxScores);
+      return deployer.deploy(ScoringManager, scoringExpertsManager.address, administratorsRegistry.address, areas, getRewards(), areaMaxScores);
     })
     .then(() => {
       return ScoringManager.deployed();
