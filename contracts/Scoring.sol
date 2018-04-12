@@ -29,6 +29,7 @@ contract Scoring is Owned {
     mapping(uint => AreaScoring) public areaScorings;
     uint[] public areas;
     uint public scoredAreasCount;
+    mapping(uint => mapping(address => bytes32)) conclusionHashes;
 
     function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
         author = _author;
@@ -42,7 +43,7 @@ contract Scoring is Owned {
 
     function() public payable {}
 
-    function submitEstimates(address _expert, uint _area, uint[] _questionIds, uint[] _questionWeights, uint[] _scores, bytes32[] _commentHashes) external onlyOwner {
+    function submitEstimates(address _expert, uint _area, bytes32 _conclusionHash, uint[] _questionIds, uint[] _questionWeights, uint[] _scores, bytes32[] _commentHashes) external onlyOwner {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
         AreaScoring storage areaScoring = areaScorings[_area];
@@ -50,6 +51,8 @@ contract Scoring is Owned {
 
         areaScoring.experts[_expert] = true;
         areaScoring.submissionsCount++;
+
+        conclusionHashes[_area][_expert] = _conclusionHash;
 
         if (areaScoring.submissionsCount == areaScoring.expertsCount)
             scoredAreasCount++;

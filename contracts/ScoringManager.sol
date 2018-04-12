@@ -82,7 +82,7 @@ contract ScoringManager is Owned {
         scoring.transfer(scoringCost);
     }
 
-    function submitEstimates(uint _projectId, uint _area, uint[] _questionIds, uint[] _scores, bytes32[] _commentHashes) external {
+    function submitEstimates(uint _projectId, uint _area, bytes32 _conclusionHash, uint[] _questionIds, uint[] _scores, bytes32[] _commentHashes) external {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
         require(scoringExpertsManager.isExpertAssignedToProject(msg.sender, _projectId, _area));
 
@@ -92,7 +92,7 @@ contract ScoringManager is Owned {
         }
 
         Scoring scoring = Scoring(scoringsMap[_projectId]);
-        scoring.submitEstimates(msg.sender, _area, _questionIds, questionWeights, _scores, _commentHashes);
+        scoring.submitEstimates(msg.sender, _area, _conclusionHash, _questionIds, questionWeights, _scores, _commentHashes);
     }
 
     function setQuestions(uint[] _questionIds, uint[] _weights) external onlyOwner {
