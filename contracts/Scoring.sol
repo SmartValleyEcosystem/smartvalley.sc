@@ -99,6 +99,8 @@ contract Scoring is Owned {
         _score = score;
         _areas = areas;
         _areaResults = new bool[](areas.length);
+        _areaScores = new uint[](areas.length);
+        
         for (uint i = 0; i < _areas.length; i++) {
             AreaScoring storage areaScoring = areaScorings[_areas[i]];
             bool isCompleted = areaScoring.submissionsCount == areaScoring.expertsCount;
