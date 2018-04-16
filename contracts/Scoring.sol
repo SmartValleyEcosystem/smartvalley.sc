@@ -61,7 +61,7 @@ contract Scoring is Owned {
             addEstimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]);
 
             areaScoring.sum += _scores[i] * _questionWeights[i];
-            areaScoring.maxSum += _scores[i] * 2;
+            areaScoring.maxSum += 2 * _questionWeights[i];
         }
 
         _expert.transfer(areaScoring.estimateRewardWEI);
