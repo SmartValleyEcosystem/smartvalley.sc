@@ -1,30 +1,23 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./ExpertsRegistry.sol";
 import "./RandomGenerator.sol";
+import "./ScoringsRegistry.sol";
 
 contract ScoringExpertsManager is Owned {
 
     ExpertsRegistry private expertsRegistry;
     AdministratorsRegistry private administratorsRegistry;
+    ScoringsRegistry private scoringsRegistry;
 
     address public scoringManagerAddress;
 
     uint public expertsCountMultiplier;
     uint public offerExpirationPeriod;
 
-    // State contains one of following values:
-    // - 0: No offer created
-    // - 1: Offer is accepted
-    // - 2: Offer is rejected
-    // - timespan: Offer is pending (from the specified timespan)
-    mapping(uint => mapping(uint => mapping(address => uint))) offerStates;
-    mapping(uint => mapping(uint => address[])) offers;
-    mapping(uint => mapping(uint => uint)) vacantExpertPositionCounts;
-    mapping(uint => uint[]) projectAreas;
 
-    function ScoringExpertsManager(uint _expertsCountMultiplier, uint _offerExpirationPeriodDays, address _expertsRegistryAddress, address _administratorsRegistryAddress) public {
+    constructor (uint _expertsCountMultiplier, uint _offerExpirationPeriodDays, address _expertsRegistryAddress, address _administratorsRegistryAddress) public {
         setExpertsRegistry(_expertsRegistryAddress);
         setExpertsCountMultiplier(_expertsCountMultiplier);
         setOfferExpirationPeriod(_offerExpirationPeriodDays);
@@ -68,12 +61,9 @@ contract ScoringExpertsManager is Owned {
 
     function selectExperts(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) external onlyScoringManager {
         require(_areas.length != 0 && _areas.length == _areaExpertCounts.length);
-        require(projectAreas[_projectId].length == 0);
-
-        projectAreas[_projectId] = _areas;
-
-        for (uint i = 0; i < _areas.length; i++) {
-            vacantExpertPositionCounts[_projectId][_areas[i]] = _areaExpertCounts[i];
+        
+        for (uint i = 0; i < _areas.length; i++) {            
+            scoringsRegistry.setVacantExpertPositionCount(_projectId, _areas[i], _areaExpertCounts[i]);
             makeOffers(_projectId, _areas[i]);
         }
     }
@@ -81,7 +71,7 @@ contract ScoringExpertsManager is Owned {
     function selectMissingExperts(uint _projectId) external onlyAdministrators {
         require(!hasAnyPendingOffers(_projectId));
 
-        uint[] storage areas = projectAreas[_projectId];
+        uint[] memory areas = scoringsRegistry.getScoringAreas(_projectId);
         for (uint i = 0; i < areas.length; i++) {
             makeOffers(_projectId, areas[i]);
         }
@@ -90,18 +80,20 @@ contract ScoringExpertsManager is Owned {
     function setExperts(uint _projectId, uint[] _areas, address[] _experts) external onlyAdministrators {
         for (uint i = 0; i < _areas.length; i++) {
             uint area = _areas[i];
-            require(vacantExpertPositionCounts[_projectId][area] > 0);
+        
+            uint currentVacantExpertPositionCount = scoringsRegistry.getVacantExpertPositionCounts(_projectId, area);
+            require(currentVacantExpertPositionCount > 0);
 
-            uint offerState = offerStates[_projectId][area][expert];
+            uint offerState = scoringsRegistry.getOfferState(_projectId, area, expert);
             require(offerState != 1);
 
             address expert = _experts[i];
             if (offerState == 0) {
-                offers[_projectId][area].push(expert);
+                scoringsRegistry.addOffer(_projectId, area, expert);
             }
 
-            offerStates[_projectId][area][expert] = 1;
-            vacantExpertPositionCounts[_projectId][area]--;
+            scoringsRegistry.setOfferState(_projectId, area, expert, 1);
+            scoringsRegistry.setVacantExpertPositionCount(_projectId, area, currentVacantExpertPositionCount - 1);           
         }
     }
 
@@ -112,16 +104,16 @@ contract ScoringExpertsManager is Owned {
         _experts = new address[](offersCount);
 
         uint currentOfferIndex = 0;
-        uint[] storage areas = projectAreas[_projectId];
+        uint[] memory areas = scoringsRegistry.getScoringAreas(_projectId);
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
-            address[] storage areaOffers = offers[_projectId][area];
+            address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, area);
             for (uint j = 0; j < areaOffers.length; j++) {
                 address expert = areaOffers[j];
 
                 _areas[currentOfferIndex] = area;
                 _experts[currentOfferIndex] = expert;
-                _states[currentOfferIndex] = offerStates[_projectId][area][expert];
+                _states[currentOfferIndex] = scoringsRegistry.getOfferState(_projectId, area, expert);
 
                 currentOfferIndex++;
             }
@@ -130,21 +122,23 @@ contract ScoringExpertsManager is Owned {
 
     function getOffersCount(uint _projectId) private view returns(uint) {
         uint result = 0;
-        uint[] storage areas = projectAreas[_projectId];
+        uint[] memory areas = scoringsRegistry.getScoringAreas(_projectId);
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
-            result += offers[_projectId][area].length;
+            address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, area);
+            result += areaOffers.length;
         }
         return result;
     }
 
     function hasAnyPendingOffers(uint _projectId) private view returns (bool) {
-        uint[] storage areas = projectAreas[_projectId];
+        uint[] memory areas = scoringsRegistry.getScoringAreas(_projectId);
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
-            address[] storage areaOffers = offers[_projectId][area];
+            address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, area);
             for (uint j = 0; j < areaOffers.length; j++) {
-                if (offerStates[_projectId][area][areaOffers[j]] > now)
+                
+                if (scoringsRegistry.getOfferState(_projectId, area, areaOffers[j]) > now)
                     return true;
             }
         }
@@ -152,39 +146,42 @@ contract ScoringExpertsManager is Owned {
     }
 
     function makeOffers(uint _projectId, uint _area) private {
-        uint expertsCount = vacantExpertPositionCounts[_projectId][_area];
+        uint expertsCount = scoringsRegistry.getVacantExpertPositionCounts(_projectId, _area);
         require(expertsCount > 0);
 
         uint[] memory indices = getExpertIndicesInArea(_projectId, _area, expertsCount);
         for (uint i = 0; i < indices.length; i++) {
             address expert = expertsRegistry.areaExpertsMap(_area, indices[i]);
-            require(offerStates[_projectId][_area][expert] == 0);
+            require(scoringsRegistry.getOfferState(_projectId, _area, expert) == 0);
 
-            offerStates[_projectId][_area][expert] = now + offerExpirationPeriod;
-            offers[_projectId][_area].push(expert);
+            scoringsRegistry.setOfferState(_projectId, _area, expert, now + offerExpirationPeriod);
+            scoringsRegistry.addOffer(_projectId, _area, expert);
         }
     }
 
-    function reject(uint _projectId, uint _area) external {
-        require(offerStates[_projectId][_area][msg.sender] > now);
+    function reject(uint _projectId, uint _area) external {       
+        require(scoringsRegistry.getOfferState(_projectId, _area, msg.sender) > now);
 
-        offerStates[_projectId][_area][msg.sender] = 2;
+        scoringsRegistry.setOfferState(_projectId, _area, msg.sender, 2);
     }
 
     function accept(uint _projectId, uint _area) external {
-        require(offerStates[_projectId][_area][msg.sender] > now);
-        require(vacantExpertPositionCounts[_projectId][_area] > 0);
+        require(scoringsRegistry.getOfferState(_projectId, _area, msg.sender) > now);
 
-        offerStates[_projectId][_area][msg.sender] = 1;
-        vacantExpertPositionCounts[_projectId][_area]--;
+        uint currentVacantExpertPositionCount = scoringsRegistry.getVacantExpertPositionCounts(_projectId, _area);
+        require(currentVacantExpertPositionCount > 0);
+
+        scoringsRegistry.setOfferState(_projectId, _area, msg.sender, 1);
+        scoringsRegistry.setVacantExpertPositionCount(_projectId, _area, currentVacantExpertPositionCount -1);
     }
 
     function isExpertAssignedToProject(address _expert, uint _projectId, uint _area) external view returns(bool) {
-        return offerStates[_projectId][_area][_expert] == 1;
+        return scoringsRegistry.getOfferState(_projectId, _area, _expert) == 1;
     }
 
     function getExpertIndicesInArea(uint _projectId, uint _area, uint _requestedCount) private view returns(uint[]) {
-        uint[] memory indicesToExclude = getIndices(_area, offers[_projectId][_area]);
+        address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, _area);
+        uint[] memory indicesToExclude = getIndices(_area, areaOffers);
         uint existingCount = expertsRegistry.getExpertsCountInArea(_area);
         uint availableCount = existingCount - indicesToExclude.length;
 

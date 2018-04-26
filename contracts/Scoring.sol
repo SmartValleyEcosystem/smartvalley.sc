@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./ScoringExpertsManager.sol";
@@ -31,7 +31,7 @@ contract Scoring is Owned {
     uint public scoredAreasCount;
     mapping(uint => mapping(address => bytes32)) conclusionHashes;
 
-    function Scoring(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
+    constructor (address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
