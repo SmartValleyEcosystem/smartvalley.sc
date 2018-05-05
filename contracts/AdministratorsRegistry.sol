@@ -1,10 +1,14 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 
 contract AdministratorsRegistry is Owned {
 
     mapping(address => bool) public administratorsMap;
+
+    constructor () public {
+        administratorsMap[msg.sender] = true;
+    }
 
     modifier onlyAdministrators {
         require(msg.sender == owner || administratorsMap[msg.sender]);

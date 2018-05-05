@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
@@ -25,11 +25,12 @@ contract ExpertsRegistry is Owned {
     mapping(uint => address[]) public areaExpertsMap;
     mapping(address => Expert) public expertsMap;
     Application[] public applications;
-    uint[] public availableAreas;
+    uint[] public availableAreas;    
+    address public migrationHost;
 
     AdministratorsRegistry private administratorsRegistry;
 
-    function ExpertsRegistry(address _administratorsRegistryAddress, uint[] _areas) public {
+    constructor (address _administratorsRegistryAddress, uint[] _areas) public {
         setAdministratorsRegistry(_administratorsRegistryAddress);
         setAvailableAreas(_areas);
     }
@@ -41,7 +42,12 @@ contract ExpertsRegistry is Owned {
 
     function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
         require(_administratorsRegistryAddress != 0);
-        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);
+        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);    
+    }
+    
+    function setMigrationHost(address _address) external onlyOwner {
+        require(_address != 0);
+        migrationHost = _address;
     }
 
     function setAvailableAreas(uint[] _areas) public onlyOwner {
@@ -119,6 +125,10 @@ contract ExpertsRegistry is Owned {
     }
 
     function add(address _expert, uint[] _areas) external onlyAdministrators {
+        addInternal(_expert, _areas);
+    }
+
+    function addInternal(address _expert, uint[] _areas) private {
         expertsMap[_expert].exists = true;
 
         for (uint i = 0; i < _areas.length; i++) {
@@ -164,12 +174,43 @@ contract ExpertsRegistry is Owned {
         _areas = areas;
     }
 
+    function migrateFromMigrationHost (uint _startIndex, uint _count, uint _area) external onlyOwner {
+        require(migrationHost != 0);
+        ExpertsRegistry expertsRegistry = ExpertsRegistry(migrationHost); 
+        require(_startIndex + _count <= expertsRegistry.getExpertsCountInArea(_area));     
+
+        address[] memory experts = expertsRegistry.getExpertsInArea(_area);
+
+        for (uint i = _startIndex; i < _startIndex + _count; i++) {             
+             address expert = experts[i];         
+             uint[] memory areas = new uint[](1);    
+             areas[0] = _area;
+             addInternal(expert, areas);
+             expertsMap[expert].exists = true;
+             bytes32 applicationHash = expertsRegistry.getApplicationHash(expert);
+             setApplicationHash(expert, applicationHash);
+          }
+     }
+    
+
     function getExpertsCountInArea(uint _area) external view returns(uint) {
         return areaExpertsMap[_area].length;
     }
 
+    function getExpertsInArea(uint _area) public view returns(address[]) {
+        return areaExpertsMap[_area];
+    }
+
     function getExpertIndex(address _expert, uint _area) external view returns(uint) {
         return expertsMap[_expert].areas[_area].index;
+    }
+
+    function getApplicationHash(address _expert) public view returns(bytes32) {
+        return expertsMap[_expert].applicationHash;
+    }
+
+    function setApplicationHash(address _expert, bytes32 _hash) private {
+        expertsMap[_expert].applicationHash = _hash;
     }
 
     function removeFromAreaCollection(uint _index, uint _area) private {
