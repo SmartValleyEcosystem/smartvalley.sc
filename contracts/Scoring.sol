@@ -17,7 +17,6 @@ contract Scoring is Owned {
         uint maxSum;
         uint sum;
         uint submissionsCount;
-        mapping(address => bool) experts;
     }
 
     uint public SCORE_PRECISION = 2;
@@ -54,9 +53,8 @@ contract Scoring is Owned {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
         AreaScoring storage areaScoring = areaScorings[_area];
-        require(!areaScoring.experts[_expert] && areaScoring.submissionsCount < areaScoring.expertsCount);
+        require(areaScoring.submissionsCount < areaScoring.expertsCount);
 
-        areaScoring.experts[_expert] = true;
         areaScoring.submissionsCount++;
 
         conclusionHashes[_area][_expert] = _conclusionHash;

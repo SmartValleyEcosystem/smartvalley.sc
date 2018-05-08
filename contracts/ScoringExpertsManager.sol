@@ -163,8 +163,11 @@ contract ScoringExpertsManager is Owned {
         scoringsRegistry.setVacantExpertPositionCount(_projectId, _area, vacantExpertPositionCount - 1);
     }
 
-    function isExpertAssignedToProject(address _expert, uint _projectId, uint _area) external view returns(bool) {
-        return scoringsRegistry.getOfferState(_projectId, _area, _expert) == 1;
+    function finish(uint _projectId, uint _area, address _expert) external onlyScoringManager {
+        require(doesOfferExist(_projectId, _area, _expert), "offer does not exist");
+        require(isOfferReadyForScoring(_expert, _projectId, _area), "offer is not in valid state for scoring");
+
+        scoringsRegistry.setOfferState(_projectId, _area, _expert, 3);
     }
 
     function getOffersCount(uint _projectId) private view returns(uint) {
@@ -207,6 +210,11 @@ contract ScoringExpertsManager is Owned {
             address expert = expertsRegistry.expertsByAreaMap(_area, indices[i]);
             scoringsRegistry.addOffer(_projectId, _area, expert, 0, 0);
         }
+    }
+
+    function isOfferReadyForScoring(address _expert, uint _projectId, uint _area) private view returns(bool) {
+        return scoringsRegistry.getOfferState(_projectId, _area, _expert) == 1
+            && scoringsRegistry.getScoringDeadline(_projectId, _area, _expert) >= now;
     }
 
     function isOfferPending(uint _projectId, uint _area, address _expert) private view returns(bool) {

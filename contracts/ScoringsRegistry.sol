@@ -11,6 +11,7 @@ contract ScoringsRegistry is Owned {
         // - 0: Pending
         // - 1: Accepted
         // - 2: Rejected
+        // - 3: Finished
         mapping(address => uint) offerStates;
         mapping(address => uint) scoringDeadlines;
     }

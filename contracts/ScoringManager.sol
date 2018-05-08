@@ -64,7 +64,8 @@ contract ScoringManager is Owned {
 
     function submitEstimates(uint _projectId, uint _area, bytes32 _conclusionHash, uint[] _questionIds, uint[] _scores, bytes32[] _commentHashes) external {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
-        require(scoringExpertsManager.isExpertAssignedToProject(msg.sender, _projectId, _area));
+
+        scoringExpertsManager.finish(_projectId, _area, msg.sender);
 
         uint[] memory questionWeights = new uint[](_questionIds.length);
         for (uint i = 0; i < _questionIds.length; i++) {
