@@ -118,13 +118,14 @@ contract ScoringExpertsManager is Owned {
         }
     }
 
-    function getOffers(uint _projectId) external view returns(uint[] _areas, address[] _experts, uint[] _states, uint[] _deadlines) {
+    function getOffers(uint _projectId) external view returns(uint[] _areas, address[] _experts, uint[] _states, uint[] _deadlines, uint _expirationTimestamp) {
         uint offersCount = getOffersCount(_projectId);
 
         _areas = new uint[](offersCount);
         _states = new uint[](offersCount);
         _experts = new address[](offersCount);
         _deadlines = new uint[](offersCount);
+        _expirationTimestamp = scoringsRegistry.getPendingOffersExpirationTimestamp(_projectId);
 
         uint currentOfferIndex = 0;
         uint[] memory areas = scoringsRegistry.getScoringAreas(_projectId);
