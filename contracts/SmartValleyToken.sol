@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./StandardToken.sol";
 import "./MigrationAgentInterface.sol";
@@ -25,7 +25,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
 
     bool public isMintingAllowed = true;
 
-    function SmartValleyToken(address _freezer) public {
+    constructor(address _freezer) public {
         setBalanceFreezer(_freezer);
     }
 
@@ -83,7 +83,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         balances[_to] += _tokensAmountWithDecimals;
         totalSupply += _tokensAmountWithDecimals;
         
-        Transfer(this, _to, _tokensAmountWithDecimals);
+        emit Transfer(this, _to, _tokensAmountWithDecimals);
     }
 
     function getAvailableBalance (address _from) external constant returns(uint) { 
@@ -101,7 +101,7 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         balances[_from] -= _tokensAmountWithDecimals;
         totalSupply -= _tokensAmountWithDecimals;
         
-        Transfer(_from, 0x0, _tokensAmountWithDecimals);
+        emit Transfer(_from, 0x0, _tokensAmountWithDecimals);
     }
 
     function blockMinting() onlyOwner public {

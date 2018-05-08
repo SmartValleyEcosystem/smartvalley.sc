@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./SmartValleyToken.sol";
@@ -12,7 +12,7 @@ contract Minter is Owned {
     SmartValleyToken public token;
     address public scoringManagerAddress;
 
-    function Minter(address _tokenAddress) public {
+    constructor(address _tokenAddress) public {
         setTokenAddress(_tokenAddress);
     }
 

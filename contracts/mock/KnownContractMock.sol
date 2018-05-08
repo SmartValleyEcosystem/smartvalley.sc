@@ -1,4 +1,5 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
+
 import "../KnownContractInterface.sol";
 
 contract KnownContractMock is KnownContract {
@@ -8,7 +9,7 @@ contract KnownContractMock is KnownContract {
     bytes32[] public transferedData;
     uint256 public callCount = 0;
 
-    function KnownContractMock() public {}
+    constructor() public {}
 
     function transfered(address _sender, uint256 _value, bytes32[] _data) external {
         transferedSender = _sender;

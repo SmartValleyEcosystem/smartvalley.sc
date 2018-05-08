@@ -1,22 +1,21 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 
 contract EtherManager is Owned {
 
     uint256 public weiAmountToGift = 1 ether;
-
     mapping(address => bool) public receiversMap;
     address[] public receivers;
 
-    function EtherManager() public payable {}
+    constructor() public payable {}
 
     function giftEth (address _receiver) public onlyOwner returns(uint256) {
-        require(this.balance >= weiAmountToGift && receiversMap[_receiver] == false);
+        require(address(this).balance >= weiAmountToGift && receiversMap[_receiver] == false);
         _receiver.transfer(weiAmountToGift);
         receiversMap[_receiver] = true;
         receivers.push(_receiver);
-        return this.balance;
+        return address(this).balance;
     }
 
     function () payable public {}
@@ -27,6 +26,6 @@ contract EtherManager is Owned {
     }
 
     function withdrawEth() external onlyOwner {
-        owner.transfer(this.balance);
+        owner.transfer(address(this).balance);
     }
 }

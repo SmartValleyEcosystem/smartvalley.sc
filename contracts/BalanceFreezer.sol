@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 contract BalanceFreezer {
 
@@ -23,7 +23,7 @@ contract BalanceFreezer {
             }
         }
 
-        currentFrozenBalances.push(FrozenBalance(_amountWithDecimals, now + _durationDays * 1 days));                   
+        currentFrozenBalances.push(FrozenBalance(_amountWithDecimals, now + _durationDays * 1 days));
     }
 
     function getFrozenAmount(address _address) external constant returns (uint) {

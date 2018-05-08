@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./VotingSprint.sol";
@@ -16,7 +16,7 @@ contract VotingManager is Owned {
 
     uint256[] public projectsQueue;
 
-    function VotingManager(address _freezer, address _token, uint _minimumProjectsCount) public {
+    constructor(address _freezer, address _token, uint _minimumProjectsCount) public {
         require(_freezer != 0 && _token != 0);
         freezer = BalanceFreezer(_freezer);
         token = SmartValleyToken(_token);

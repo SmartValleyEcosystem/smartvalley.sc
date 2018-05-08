@@ -1,9 +1,9 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "../Minter.sol";
 
 contract MinterMock is Minter {
-    function MinterMock(address _tokenAddress) Minter(_tokenAddress) public {
+    constructor(address _tokenAddress) Minter(_tokenAddress) public {
     }
 
     function putToDateMap(address _receiverAddress, uint _days) public {

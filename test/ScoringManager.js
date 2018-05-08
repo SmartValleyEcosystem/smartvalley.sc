@@ -6,9 +6,7 @@ var ScoringExpertsManagerMock = artifacts.require('./mock/ScoringExpertsManagerM
 var RandomGenerator = artifacts.require('./RandomGenerator.sol');
 
 contract('ScoringManager', async function(accounts) {
-    
     const areasCases = [2, 3, 4, 1, 12, 13, 14, 23, 24, 34, 123, 124, 234, 134, 1234];  
-
     let scoringManager, owner, external_id;
     let administratorsRegistry;
     let expertsRegistry;

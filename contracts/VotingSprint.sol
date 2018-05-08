@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./BalanceFreezer.sol";
@@ -22,7 +22,7 @@ contract VotingSprint is Owned {
     mapping(address => uint) public investorTokenAmounts;
     mapping(address => mapping(uint => uint)) public investorVotes;
 
-    function VotingSprint(uint _number, uint _durationDays, uint256[] _projectsIds, uint _acceptanceThresholdPercent, address _token, address _freezer) public {
+    constructor(uint _number, uint _durationDays, uint256[] _projectsIds, uint _acceptanceThresholdPercent, address _token, address _freezer) public {
         freezer = BalanceFreezer(_freezer);
         token = SmartValleyToken(_token);
 

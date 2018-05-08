@@ -1,7 +1,6 @@
 pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
-import "./ScoringExpertsManager.sol";
 
 contract Scoring is Owned {
     struct Estimate {
@@ -31,7 +30,7 @@ contract Scoring is Owned {
     uint public scoredAreasCount;
     mapping(uint => mapping(address => bytes32)) conclusionHashes;
 
-    constructor (address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
+    constructor(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
@@ -43,7 +42,15 @@ contract Scoring is Owned {
 
     function() public payable {}
 
-    function submitEstimates(address _expert, uint _area, bytes32 _conclusionHash, uint[] _questionIds, uint[] _questionWeights, uint[] _scores, bytes32[] _commentHashes) external onlyOwner {
+    function submitEstimates(
+        address _expert,
+        uint _area,
+        bytes32 _conclusionHash,
+        uint[] _questionIds,
+        uint[] _questionWeights,
+        uint[] _scores,
+        bytes32[] _commentHashes) external onlyOwner {
+
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
         AreaScoring storage areaScoring = areaScorings[_area];
@@ -115,10 +122,10 @@ contract Scoring is Owned {
         _scoringCost = 0;
 
         for (uint i = 0; i < areas.length; i++) {
-          uint expertsCount = areaScorings[areas[i]].expertsCount;
-          uint areaEstimateRewardsWEI = areaScorings[areas[i]].estimateRewardWEI;
+            uint expertsCount = areaScorings[areas[i]].expertsCount;
+            uint areaEstimateRewardsWEI = areaScorings[areas[i]].estimateRewardWEI;
 
-          _scoringCost += areaEstimateRewardsWEI * expertsCount;
+            _scoringCost += areaEstimateRewardsWEI * expertsCount;
         }
     }
 

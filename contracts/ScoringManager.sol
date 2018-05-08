@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.22;
 
 import "./Owned.sol";
 import "./Scoring.sol";
@@ -17,10 +17,16 @@ contract ScoringManager is Owned {
     mapping(uint => uint) public areaMaxScoresMap;
     mapping(uint => uint) public questionWeightsMap;
 
-    constructor(address _scoringExpertsManagerAddress, address _administratorsRegistryAddress, uint[] _areas, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
+    constructor(address _scoringExpertsManagerAddress,
+                address _administratorsRegistryAddress,
+                address _scoringsRegistryAddress,
+                uint[] _areas,
+                uint[] _areaEstimateRewardsWEI,
+                uint[] _areaMaxScores) public {
         require(_areas.length == _areaEstimateRewardsWEI.length);
 
         setAdministratorsRegistry(_administratorsRegistryAddress);
+        setScoringsRegistry(_scoringsRegistryAddress);
         setScoringExpertsManager(_scoringExpertsManagerAddress);
 
         for (uint i = 0; i < _areas.length; i++) {
@@ -35,12 +41,12 @@ contract ScoringManager is Owned {
     }
 
     function start(uint _projectId, uint[] _areas, uint[] _areaExpertCounts) payable external {
-        require(_areas.length == _areaExpertCounts.length);
-        require(scoringsRegistry.getScoringAddressById(_projectId) == 0);
+        require(_areas.length == _areaExpertCounts.length, "_areas and _areaExpertCounts sizes don't match");
+        require(scoringsRegistry.getScoringAddressById(_projectId) == 0, "scoring for specified project already exists");
 
         uint scoringCost = getScoringCost(_areas, _areaExpertCounts);
         require(msg.value == scoringCost);
-        
+
         uint[] memory rewards = new uint[](_areas.length);
         uint[] memory areaMaxScores = new uint[](_areas.length);
         for (uint i = 0; i < _areas.length; i++) {
@@ -49,9 +55,9 @@ contract ScoringManager is Owned {
         }
 
         Scoring scoring = new Scoring(msg.sender, _areas, _areaExpertCounts, rewards, areaMaxScores); 
-        scoringsRegistry.addScoring(scoring, _projectId, _areas);
-        
-        scoringExpertsManager.selectExperts(_projectId, _areas, _areaExpertCounts);
+        scoringsRegistry.addScoring(address(scoring), _projectId, _areas, _areaExpertCounts, scoringExpertsManager.offerExpirationPeriod());
+
+        scoringExpertsManager.selectExperts(_projectId);
 
         address(scoring).transfer(msg.value);
     }
@@ -78,17 +84,17 @@ contract ScoringManager is Owned {
     }
 
     function updateScoringsOwner(uint _startIndex, uint _count, address _newScoringManager) external onlyOwner {
-        uint scoringsAmount = scoringsRegistry.getScoringsAmount();
-        require(_startIndex + _count <= scoringsAmount && _newScoringManager != 0);
+        uint scoringsCount = scoringsRegistry.getScoringsCount();
+        require(_startIndex + _count <= scoringsCount && _newScoringManager != 0);
 
         for (uint i = _startIndex; i < _startIndex + _count; i++) {
-            Scoring scoring = Scoring(scoringsRegistry.getScoringAddressByIndex(i));           
-            scoring.changeOwner(_newScoringManager);          
+            Scoring scoring = Scoring(scoringsRegistry.getScoringAddressByIndex(i));
+            scoring.changeOwner(_newScoringManager);
         }
-    } 
+    }
 
     function confirmScoringsOwner(uint _startIndex, uint _count) external {
-        uint scoringsAmount = scoringsRegistry.getScoringsAmount();
+        uint scoringsAmount = scoringsRegistry.getScoringsCount();
         require(_startIndex + _count <= scoringsAmount);
 
         for (uint i = _startIndex; i < _startIndex + _count; i++) {
@@ -96,7 +102,7 @@ contract ScoringManager is Owned {
             scoring.confirmOwner();
         }
     }
-    
+
     function setScoringExpertsManager(address _scoringExpertsManagerAddress) public onlyOwner {
         require(_scoringExpertsManagerAddress != 0);
         scoringExpertsManager = ScoringExpertsManager(_scoringExpertsManagerAddress);
@@ -105,6 +111,11 @@ contract ScoringManager is Owned {
     function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
         require(_administratorsRegistryAddress != 0);
         administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);
+    }
+
+    function setScoringsRegistry(address _address) public onlyOwner {
+        require(_address != 0);
+        scoringsRegistry = ScoringsRegistry(_address);
     }
 
     function setAreaMaxScore(uint _area, uint _value) public onlyOwner {
@@ -135,7 +146,7 @@ contract ScoringManager is Owned {
         uint cost = 0;
 
         for (uint i = 0; i < _areas.length; i++) {
-            var reward = estimateRewardsInAreaMap[_areas[i]];
+            uint reward = estimateRewardsInAreaMap[_areas[i]];
             cost += reward * _areaExpertCounts[i];
         }
         return cost;

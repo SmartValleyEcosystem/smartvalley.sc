@@ -5,6 +5,7 @@ var VotingManager = artifacts.require("./VotingManager.sol");
 var ScoringManager = artifacts.require("./ScoringManager.sol");
 var AdministratorsRegistry = artifacts.require("./AdministratorsRegistry.sol");
 var ExpertsRegistry = artifacts.require("./ExpertsRegistry.sol");
+var ScoringsRegistry = artifacts.require("./ScoringsRegistry.sol");
 var ScoringExpertsManager = artifacts.require("./ScoringExpertsManager.sol");
 var RandomGenerator = artifacts.require("./RandomGenerator.sol");
 
@@ -21,6 +22,7 @@ module.exports = function(deployer) {
   let scoring;
   let scoringExpertsManager;
   let expertsRegistry;
+  let scoringsRegistry;
   let administratorsRegistry;
 
   function getRewards() {
@@ -45,6 +47,13 @@ module.exports = function(deployer) {
     })
     .then(expertsRegistryInstance => {
       expertsRegistry = expertsRegistryInstance;
+      return deployer.deploy(ScoringsRegistry);
+    })
+    .then(() => {
+      return ScoringsRegistry.deployed();
+    })
+    .then(scoringsRegistryInstance => {
+      scoringsRegistry = scoringsRegistryInstance;
       return deployer.deploy(RandomGenerator);
     })
     .then(() => {
@@ -52,14 +61,14 @@ module.exports = function(deployer) {
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
-      return deployer.deploy(ScoringExpertsManager, 3, 2, expertsRegistry.address, administratorsRegistry.address);
+      return deployer.deploy(ScoringExpertsManager, 3, 2, 2, expertsRegistry.address, administratorsRegistry.address, scoringsRegistry.address);
     })
     .then(() => {
       return ScoringExpertsManager.deployed();
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
-      return deployer.deploy(ScoringManagerMock, scoringExpertsManager.address, administratorsRegistry.address, areas, getRewards(), areaMaxScores, {overwrite: false})
+      return deployer.deploy(ScoringManagerMock, scoringExpertsManager.address, administratorsRegistry.address, scoringsRegistry.address, areas, getRewards(), areaMaxScores, {overwrite: false})
     })
     .then(() => {
       return ScoringManagerMock.deployed();
@@ -83,6 +92,13 @@ module.exports = function(deployer) {
     })
     .then(expertsRegistryInstance => {
       expertsRegistry = expertsRegistryInstance;
+      return deployer.deploy(ScoringsRegistry);
+    })
+    .then(() => {
+      return ScoringsRegistry.deployed();
+    })
+    .then(scoringsRegistryInstance => {
+      scoringsRegistry = scoringsRegistryInstance;
       return deployer.deploy(RandomGenerator);
     })
     .then(() => {
@@ -90,14 +106,14 @@ module.exports = function(deployer) {
     })
     .then(() => {
       deployer.link(RandomGenerator, ScoringExpertsManager);
-      return deployer.deploy(ScoringExpertsManager, 3, 2, expertsRegistry.address, administratorsRegistry.address);
+      return deployer.deploy(ScoringExpertsManager, 3, 2, 2, expertsRegistry.address, administratorsRegistry.address, scoringsRegistry.address);
     })
     .then(() => {
       return ScoringExpertsManager.deployed();
     })
     .then(scoringExpertsManagerInstance => {
       scoringExpertsManager = scoringExpertsManagerInstance;
-      return deployer.deploy(ScoringManager, scoringExpertsManager.address, administratorsRegistry.address, areas, getRewards(), areaMaxScores);
+      return deployer.deploy(ScoringManager, scoringExpertsManager.address, administratorsRegistry.address, scoringsRegistry.address, areas, getRewards(), areaMaxScores);
     })
     .then(() => {
       return ScoringManager.deployed();
