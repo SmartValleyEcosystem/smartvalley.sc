@@ -5,7 +5,7 @@ import "./Owned.sol";
 contract ScoringsRegistry is Owned {
 
     struct AreaScoring {
-        uint vacantExpertPositionCount;
+        uint requiredExpertsCount;
         address[] offers;
         // Possible state values:
         // - 0: Pending
@@ -116,12 +116,8 @@ contract ScoringsRegistry is Owned {
         scoringsMap[_projectId].pendingOffersExpirationTimestamp = _timestamp;
     }
 
-    function getVacantExpertPositionCount(uint _projectId, uint _area) public view returns (uint) {
-        return scoringsMap[_projectId].areaScorings[_area].vacantExpertPositionCount;
-    }
-
-    function setVacantExpertPositionCount(uint _projectId, uint _area, uint count) external onlyScroingExpertsManager {
-        setVacantExpertPositionCountInternal(_projectId, _area, count);
+    function getRequiredExpertsCount(uint _projectId, uint _area) public view returns (uint) {
+        return scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount;
     }
 
     function migrateScoringFromMigrationHost(uint _startIndex, uint _count) external onlyOwner {
@@ -144,7 +140,7 @@ contract ScoringsRegistry is Owned {
             for (uint areaIndex = 0; areaIndex < areas.length; areaIndex++) {
                 uint area = areas[areaIndex];
 
-                setVacantExpertPositionCountInternal(projectId, area, scoringRegistry.getVacantExpertPositionCount(projectId, area));
+                setRequiredExpertsCount(projectId, area, scoringRegistry.getRequiredExpertsCount(projectId, area));
 
                 for (uint offerIndex = 0; offerIndex < scoringRegistry.getOffers(projectId, area).length; offerIndex++) {
                     address offer = scoringRegistry.getOffers(projectId, area)[offerIndex];
@@ -156,7 +152,7 @@ contract ScoringsRegistry is Owned {
         }
     }
 
-    function addScoringInternal(address _scoringAddress, uint _projectId, uint[] _areas,uint[] _areaExpertCounts, uint _pendingOffersExpirationTimestamp) private {
+    function addScoringInternal(address _scoringAddress, uint _projectId, uint[] _areas, uint[] _areaExpertCounts, uint _pendingOffersExpirationTimestamp) private {
         projectIds.push(_projectId);
         scoringsMap[_projectId] = Scoring(_scoringAddress, _areas, _pendingOffersExpirationTimestamp);
 
@@ -182,7 +178,7 @@ contract ScoringsRegistry is Owned {
             scoringsMap[_projectId].areaScorings[_area].scoringDeadlines[_expert] = _deadline;
     }
 
-    function setVacantExpertPositionCountInternal(uint _projectId, uint _area, uint count) private {
-        scoringsMap[_projectId].areaScorings[_area].vacantExpertPositionCount = count;
+    function setRequiredExpertsCount(uint _projectId, uint _area, uint count) private {
+        scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount = count;
     }
 }
