@@ -84,10 +84,6 @@ contract Scoring is Owned {
         _experts = experts;
     }
 
-    function getRequiredSubmissionsInArea(uint _area) external view returns(uint) {
-        return areaScorings[_area].expertsCount;
-    }
-
     function getResults() external view returns(bool _isScored, uint _score, uint[] _areas, bool[] _areaCompleteness, uint[] _areaScores) {
         _isScored = true;
         _areas = areas;
