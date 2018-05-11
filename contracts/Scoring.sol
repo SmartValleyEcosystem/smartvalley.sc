@@ -23,7 +23,6 @@ contract Scoring is Owned {
     uint public SCORE_PRECISION = 2;
 
     address public author;
-    uint public score;
     Estimate[] public estimates;
     mapping(uint => AreaScoring) public areaScorings;
     uint[] public areas;
@@ -65,11 +64,6 @@ contract Scoring is Owned {
         }
 
         _expert.transfer(areaScoring.estimateRewardWEI);
-
-        if (!areAllAreasScored())
-            return;
-
-        score = calculateScore();
     }
 
     function getEstimates() external view returns(uint[] _questions, uint[] _scores, address[] _experts) {
@@ -94,22 +88,28 @@ contract Scoring is Owned {
         return areaScorings[_area].expertsCount;
     }
 
-    function getResults() external view returns(bool _isScored, uint _score, uint[] _areas, bool[] _areaResults, uint[] _areaScores) {
+    function getResults() external view returns(bool _isScored, uint _score, uint[] _areas, bool[] _areaCompleteness, uint[] _areaScores) {
         _isScored = true;
-        _score = score;
         _areas = areas;
-        _areaResults = new bool[](areas.length);
+        _areaCompleteness = new bool[](areas.length);
         _areaScores = new uint[](areas.length);
 
+        uint score = 0;
         for (uint i = 0; i < _areas.length; i++) {
             AreaScoring storage areaScoring = areaScorings[_areas[i]];
-            bool isCompleted = areaScoring.submissionsCount == areaScoring.expertsCount;
-            _areaResults[i] = isCompleted;
-            if (isCompleted) {
-                _areaScores[i] = getAreaScore(_areas[i]);
+            bool isAreaCompleted = areaScoring.submissionsCount == areaScoring.expertsCount;
+            _areaCompleteness[i] = isAreaCompleted;
+            if (isAreaCompleted) {
+                uint areaScore = getAreaScore(_areas[i]);
+                _areaScores[i] = areaScore;
+                score += areaScore;
             } else {
                 _isScored = false;
             }
+        }
+
+        if(_isScored) {
+            _score = score;
         }
     }
 
@@ -128,16 +128,6 @@ contract Scoring is Owned {
         return areaScorings[_area].conclusionHashes[_expert];
     }
 
-    function areAllAreasScored() private view returns(bool) {
-        for (uint i = 0; i < areas.length; i++) {
-            AreaScoring storage areaScoring = areaScorings[areas[i]];
-            if (areaScoring.submissionsCount != areaScoring.expertsCount) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     function getAreaScore(uint _area) private view returns(uint) {
         AreaScoring storage areaScoring = areaScorings[_area];
         return (areaScoring.sum * (10 ** SCORE_PRECISION) / areaScoring.maxSum) * areaScoring.maxScore;
@@ -145,13 +135,5 @@ contract Scoring is Owned {
 
     function addEstimate(uint _questionId, address _expertAddress, uint _score, bytes32 _commentHash) private {
         estimates.push(Estimate(_questionId, _expertAddress, _score, _commentHash));
-    }
-
-    function calculateScore() private view returns(uint) {
-        uint sum = 0;
-        for (uint i = 0; i < areas.length; i++) {
-            sum += getAreaScore(areas[i]);
-        }
-        return sum;
     }
 }
