@@ -84,11 +84,11 @@ contract('ExpertsRegistry', async function(accounts) {
             'there should be one expert in area 4');
 
         assert.equal(
-            await expertsRegistry.areaExpertsMap(2, 0),
+            await expertsRegistry.expertsByAreaMap(2, 0),
             expert1,
             'expert was not added to area 2 list at proper position');
         assert.equal(
-            await expertsRegistry.areaExpertsMap(4, 0),
+            await expertsRegistry.expertsByAreaMap(4, 0),
             expert1,
             'expert was not added to area 2 list at proper position');
 
@@ -104,11 +104,11 @@ contract('ExpertsRegistry', async function(accounts) {
         await expertsRegistry.add(expert1, areas, {from: admin});
 
         assert.equal(
-            await expertsRegistry.areaExpertsMap(1, 0),
+            await expertsRegistry.expertsByAreaMap(1, 0),
             expert1,
             'expert was not added to area 1 list at proper position');
         assert.equal(
-            await expertsRegistry.areaExpertsMap(2, 0),
+            await expertsRegistry.expertsByAreaMap(2, 0),
             expert1,
             'expert was not added to area 2 list at proper position');
     });
@@ -310,15 +310,14 @@ contract('ExpertsRegistry', async function(accounts) {
         const areas =       [13,      123,     1234];
         console.log('addExperts')        
         await expertsRegistry.addExperts(expertList, areas, {from: owner})
-        const expertsInArea1 = await expertsRegistry.areaExpertsMap(1, 0);
-        const expertsInArea2 = await expertsRegistry.areaExpertsMap(2, 0);
-        const expertsInArea3 = await expertsRegistry.areaExpertsMap(3, 0);
-        const expertsInArea4 = await expertsRegistry.areaExpertsMap(4, 0);
+        const expertsInArea1 = await expertsRegistry.expertsByAreaMap(1, 0);
+        const expertsInArea2 = await expertsRegistry.expertsByAreaMap(2, 0);
+        const expertsInArea3 = await expertsRegistry.expertsByAreaMap(3, 0);
+        const expertsInArea4 = await expertsRegistry.expertsByAreaMap(4, 0);
 
         console.log(expertsInArea1)
         console.log(expertsInArea2)
         console.log(expertsInArea3)
         console.log(expertsInArea4)
-
     })
 });

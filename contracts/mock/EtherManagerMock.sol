@@ -1,9 +1,10 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.23;
+
 import "../EtherManager.sol";
 
 contract EtherManagerMock is EtherManager {
 
-    function EtherManagerMock() public payable {}
+    constructor() public payable {}
 
     function removeReceiver(address _receiver) public {
         uint i = 0;

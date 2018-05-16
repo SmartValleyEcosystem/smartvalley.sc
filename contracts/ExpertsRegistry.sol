@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.23;
 
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
@@ -19,17 +19,18 @@ contract ExpertsRegistry is Owned {
 
     struct Application {
         address expert;
-        uint area;        
+        uint area;
     }
 
-    mapping(uint => address[]) public areaExpertsMap;
+    mapping(uint => address[]) public expertsByAreaMap;
     mapping(address => Expert) public expertsMap;
     Application[] public applications;
     uint[] public availableAreas;
+    address public migrationHostAddress;
 
     AdministratorsRegistry private administratorsRegistry;
 
-    function ExpertsRegistry(address _administratorsRegistryAddress, uint[] _areas) public {
+    constructor(address _administratorsRegistryAddress, uint[] _areas) public {
         setAdministratorsRegistry(_administratorsRegistryAddress);
         setAvailableAreas(_areas);
     }
@@ -39,9 +40,14 @@ contract ExpertsRegistry is Owned {
         _;
     }
 
-    function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
-        require(_administratorsRegistryAddress != 0);
-        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);
+    function setAdministratorsRegistry(address _address) public onlyOwner {
+        require(_address != 0);
+        administratorsRegistry = AdministratorsRegistry(_address);
+    }
+
+    function setMigrationHost(address _address) external onlyOwner {
+        require(_address != 0);
+        migrationHostAddress = _address;
     }
 
     function setAvailableAreas(uint[] _areas) public onlyOwner {
@@ -52,12 +58,12 @@ contract ExpertsRegistry is Owned {
         require(_areas.length > 0 && applicationHash.length > 0);
 
         expertsMap[msg.sender].applicationHash = applicationHash;
-        
+
         for (uint i = 0; i < _areas.length; i++) {
             uint area = _areas[i];
             require(!expertsMap[msg.sender].areas[area].approved);
 
-            expertsMap[msg.sender].areas[area].applied = true;           
+            expertsMap[msg.sender].areas[area].applied = true;
             applications.push(Application(msg.sender, area));
         }
     }
@@ -83,8 +89,11 @@ contract ExpertsRegistry is Owned {
 
         for (uint i = 0; i < availableAreas.length; i++) {
             uint area = availableAreas[i];
-            if (expertsMap[_expert].areas[area].applied)
-                expertsMap[_expert].areas[area].applied = false;
+
+            require(expertsMap[_expert].areas[area].applied);
+            require(!expertsMap[_expert].areas[area].approved);
+
+            expertsMap[_expert].areas[area].applied = false;
         }
 
         removeApplications(_expert);
@@ -119,10 +128,17 @@ contract ExpertsRegistry is Owned {
     }
 
     function add(address _expert, uint[] _areas) external onlyAdministrators {
+        require(_areas.length > 0 && _expert != 0);
+
+        addInternal(_expert, _areas);
+    }
+
+    function addInternal(address _expert, uint[] _areas) private {
         expertsMap[_expert].exists = true;
 
         for (uint i = 0; i < _areas.length; i++) {
             require(!expertsMap[_expert].areas[_areas[i]].approved);
+
             addInArea(_expert, _areas[i]);
         }
     }
@@ -164,24 +180,59 @@ contract ExpertsRegistry is Owned {
         _areas = areas;
     }
 
+    function migrateFromHost(uint _startIndex, uint _count, uint _area) external onlyOwner {
+        require(migrationHostAddress != 0);
+
+        ExpertsRegistry migrationHost = ExpertsRegistry(migrationHostAddress);
+
+        address[] memory experts = migrationHost.getExpertsInArea(_area);
+        require(_startIndex + _count <= experts.length);
+
+        for (uint i = _startIndex; i < _startIndex + _count; i++) {
+             address expert = experts[i];
+             uint[] memory areas = new uint[](1);
+             areas[0] = _area;
+             addInternal(expert, areas);
+             setApplicationHash(expert, migrationHost.getApplicationHash(expert));
+          }
+     }
+
     function getExpertsCountInArea(uint _area) external view returns(uint) {
-        return areaExpertsMap[_area].length;
+        return expertsByAreaMap[_area].length;
     }
 
-    function getExpertIndex(address _expert, uint _area) external view returns(uint) {
-        return expertsMap[_expert].areas[_area].index;
+    function getExpertsIndices(uint _area, address[] _experts) external view returns(uint[]) {
+        uint[] memory result = new uint[](_experts.length);
+        for (uint i = 0; i < _experts.length; i++) {
+            result[i] = expertsMap[_experts[i]].areas[_area].index;
+        }
+        return result;
+    }
+
+    function getExpertsInArea(uint _area) public view returns(address[]) {
+        return expertsByAreaMap[_area];
+    }
+
+    function getApplicationHash(address _expert) public view returns(bytes32) {
+        return expertsMap[_expert].applicationHash;
+    }
+
+    function setApplicationHash(address _expert, bytes32 _hash) private {
+        expertsMap[_expert].applicationHash = _hash;
     }
 
     function removeFromAreaCollection(uint _index, uint _area) private {
-        address[] storage areaCollection = areaExpertsMap[_area];
-        address expertToMove = areaCollection[areaCollection.length - 1];
-        areaCollection[_index] = expertToMove;
+        address[] storage expertsInArea = expertsByAreaMap[_area];
+        require(expertsInArea.length > 0);
 
-        if (_index != areaCollection.length - 1) {
+        address expertToMove = expertsInArea[expertsInArea.length - 1];
+        expertsInArea[_index] = expertToMove;
+
+        if (_index != expertsInArea.length - 1) {
             expertsMap[expertToMove].areas[_area].index = _index;
         }
 
-        areaCollection.length--;
+        expertsInArea.length--;
     }
 
     function removeApplications(address _expert) private {
@@ -200,9 +251,9 @@ contract ExpertsRegistry is Owned {
     }
 
     function addInArea(address _expert, uint _area) private {
-        areaExpertsMap[_area].push(_expert);
+        expertsByAreaMap[_area].push(_expert);
         expertsMap[_expert].areas[_area].approved = true;
-        expertsMap[_expert].areas[_area].index = areaExpertsMap[_area].length - 1;
+        expertsMap[_expert].areas[_area].index = expertsByAreaMap[_area].length - 1;
         expertsMap[_expert].enabled = true;
     }
 }

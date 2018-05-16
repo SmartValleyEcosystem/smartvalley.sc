@@ -1,19 +1,20 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.23;
 
 library RandomGenerator {
 
     uint constant MAP_SEGMENT_SIZE = 256;
 
-    function generate(uint _count, uint _ceiling, uint[] _numbersToExclude) internal view returns(uint[]) {
+    function generate(uint _count, uint _ceiling, uint[] _numbersToExclude, uint _seed) internal view returns(uint[]) {
         require(_count > 0 && _count <= _ceiling - _numbersToExclude.length);
 
         uint[] memory uniquenessMap = new uint[]((_ceiling / MAP_SEGMENT_SIZE) + 1);
+
         if (_numbersToExclude.length != 0)
             addToMap(uniquenessMap, _numbersToExclude);
 
         uint[] memory result = new uint[](_count);
         for (uint i = 0; i < _count; i++) {
-            uint seed = i == 0 ? 0 : result[i - 1] + i;
+            uint seed = i == 0 ? _seed : result[i - 1] + i;
             result[i] = getUniqueNumber(seed, _ceiling, uniquenessMap);
         }
         return result;
@@ -25,19 +26,19 @@ library RandomGenerator {
     }
 
     function getSomeNumber(uint _seed, uint _ceiling) private view returns(uint) {
-        return uint(keccak256(uint(block.blockhash(block.number - _seed - 1)), _seed)) % _ceiling;
+        return uint(keccak256(uint(blockhash(block.number - 1)), _seed)) % _ceiling;
     }
 
     function ensureUnique(uint _number, uint _ceiling, uint[] _uniquenessMap) private pure returns(uint) {
         uint mapSegmentIndex = _number / MAP_SEGMENT_SIZE;
         uint numberPositionInMapSegment = 2 ** (_number % MAP_SEGMENT_SIZE);
 
-        if (_uniquenessMap[mapSegmentIndex] & numberPositionInMapSegment != 0) {
-            uint nextNumber = _number < _ceiling - 1 ? _number + 1 : 0;
-            return ensureUnique(nextNumber, _ceiling, _uniquenessMap);
-        } else {
+        if (_uniquenessMap[mapSegmentIndex] & numberPositionInMapSegment == 0) {
             _uniquenessMap[mapSegmentIndex] |= numberPositionInMapSegment;
             return _number;
+        } else {
+            uint nextNumber = _number < _ceiling - 1 ? _number + 1 : 0;
+            return ensureUnique(nextNumber, _ceiling, _uniquenessMap);
         }
     }
 

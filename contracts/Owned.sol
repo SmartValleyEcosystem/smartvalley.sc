@@ -1,11 +1,11 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.23;
 
 contract Owned {
 
     address public owner;
     address public newOwner;
 
-    function Owned() public {
+    constructor() public {
         owner = msg.sender;
     }
 
@@ -15,7 +15,7 @@ contract Owned {
     }
    
     function changeOwner(address _owner) onlyOwner external {
-        require(_owner != 0);
+        require(_owner != 0, "owner is 0");
         newOwner = _owner;
     }
 

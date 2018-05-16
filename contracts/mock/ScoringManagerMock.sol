@@ -1,8 +1,8 @@
-pragma solidity ^ 0.4.18;
+pragma solidity ^ 0.4.23;
 
 import "../ScoringManager.sol";
 
 contract ScoringManagerMock is ScoringManager {
-    function ScoringManagerMock (address _scoringExpertsManagerAddress, address _administratorsRegistryAddress, uint[] _areas, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) ScoringManager ( _scoringExpertsManagerAddress, _administratorsRegistryAddress, _areas, _areaEstimateRewardsWEI, _areaMaxScores) public {
+    constructor(address _scoringExpertsManagerAddress, address _administratorsRegistryAddress, address _scoringsRegistryAddress, uint[] _areas, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) ScoringManager ( _scoringExpertsManagerAddress, _administratorsRegistryAddress, _scoringsRegistryAddress, _areas, _areaEstimateRewardsWEI, _areaMaxScores) public {
     }
 }
