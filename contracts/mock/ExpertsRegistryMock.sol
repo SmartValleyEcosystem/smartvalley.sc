@@ -7,14 +7,16 @@ contract ExpertsRegistryMock is ExpertsRegistry {
     constructor(address _administratorsRegistryAddress, uint[] _areas) ExpertsRegistry(_administratorsRegistryAddress, _areas) public {
     }
 
-    event EventLog(uint n);
-
     function get(uint _area, uint[] _indices) public view returns(address[]) {
         address[] memory result = new address[](_indices.length);
         for (uint i = 0; i < _indices.length; i++) {
             result[i] = expertsByAreaMap[_area][_indices[i]];
         }
         return result;
+    }
+
+    function getExpertIndex(address _expert, uint _area) external view returns(uint) {
+        return expertsMap[_expert].areas[_area].index;
     }
 
     function addExperts(address[] _expertList, uint[] _areas) external {

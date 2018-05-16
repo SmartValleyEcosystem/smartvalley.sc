@@ -33,12 +33,10 @@ try {
     const contracts = [
         {name: 'EtherManager', config: appsettings.NethereumOptions.EtherManagerContract, deployable: true},
         {name: 'SmartValleyToken', config: appsettings.NethereumOptions.TokenContract, deployable: true},
-        {name: 'VotingManager', config: appsettings.NethereumOptions.VotingManagerContract, deployable: true},
         {name: 'Minter', config: appsettings.NethereumOptions.MinterContract, deployable: true},
         {name: 'ScoringManager', config: appsettings.NethereumOptions.ScoringManagerContract, deployable: true},
         {name: 'AdministratorsRegistry', config: appsettings.NethereumOptions.AdminRegistryContract, deployable: true},
         {name: 'Scoring', config: appsettings.NethereumOptions.ScoringContract, deployable: false},
-        {name: 'VotingSprint', config: appsettings.NethereumOptions.VotingSprintContract, deployable: false}
       ]
       
       for (let i = 0; i < contracts.length; i++) {

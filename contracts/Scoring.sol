@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.22;
+pragma solidity ^ 0.4.23;
 
 import "./Owned.sol";
 
@@ -11,12 +11,12 @@ contract Scoring is Owned {
     }
 
     struct AreaScoring {
-        uint estimateRewardWEI;
-        uint expertsCount;
+        uint estimateRewardWei;
+        uint expectedSubmissionsCount;
+        uint currentSubmissionsCount;
         uint maxScore;
         uint maxSum;
         uint sum;
-        uint submissionsCount;
         mapping(address => bytes32) conclusionHashes;
     }
 
@@ -27,12 +27,12 @@ contract Scoring is Owned {
     mapping(uint => AreaScoring) public areaScorings;
     uint[] public areas;
 
-    constructor(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) public {
+    constructor(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWei, uint[] _areaMaxScores) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
-            areaScorings[areas[i]].expertsCount = _areaExpertCounts[i];
-            areaScorings[areas[i]].estimateRewardWEI = _areaEstimateRewardsWEI[i];
+            areaScorings[areas[i]].expectedSubmissionsCount = _areaExpertCounts[i];
+            areaScorings[areas[i]].estimateRewardWei = _areaEstimateRewardsWei[i];
             areaScorings[areas[i]].maxScore = _areaMaxScores[i];
         }
     }
@@ -51,19 +51,19 @@ contract Scoring is Owned {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
         AreaScoring storage areaScoring = areaScorings[_area];
-        require(areaScoring.submissionsCount < areaScoring.expertsCount);
+        require(areaScoring.currentSubmissionsCount < areaScoring.expectedSubmissionsCount);
 
-        areaScoring.submissionsCount++;
+        areaScoring.currentSubmissionsCount++;
         areaScoring.conclusionHashes[_expert] = _conclusionHash;
 
         for (uint i = 0; i < _questionIds.length; i++) {
-            addEstimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]);
+            estimates.push(Estimate(_questionIds[i], _expert, _scores[i], _commentHashes[i]));
 
             areaScoring.sum += _scores[i] * _questionWeights[i];
             areaScoring.maxSum += 2 * _questionWeights[i];
         }
 
-        _expert.transfer(areaScoring.estimateRewardWEI);
+        _expert.transfer(areaScoring.estimateRewardWei);
     }
 
     function getEstimates() external view returns(uint[] _questions, uint[] _scores, address[] _experts) {
@@ -93,7 +93,7 @@ contract Scoring is Owned {
         uint score = 0;
         for (uint i = 0; i < _areas.length; i++) {
             AreaScoring storage areaScoring = areaScorings[_areas[i]];
-            bool isAreaCompleted = areaScoring.submissionsCount == areaScoring.expertsCount;
+            bool isAreaCompleted = areaScoring.currentSubmissionsCount == areaScoring.expectedSubmissionsCount;
             _areaCompleteness[i] = isAreaCompleted;
             if (isAreaCompleted) {
                 uint areaScore = getAreaScore(_areas[i]);
@@ -113,10 +113,10 @@ contract Scoring is Owned {
         _scoringCost = 0;
 
         for (uint i = 0; i < areas.length; i++) {
-            uint expertsCount = areaScorings[areas[i]].expertsCount;
-            uint areaEstimateRewardsWEI = areaScorings[areas[i]].estimateRewardWEI;
+            uint expertsCount = areaScorings[areas[i]].expectedSubmissionsCount;
+            uint areaEstimateRewardWei = areaScorings[areas[i]].estimateRewardWei;
 
-            _scoringCost += areaEstimateRewardsWEI * expertsCount;
+            _scoringCost += areaEstimateRewardWei * expertsCount;
         }
     }
 
@@ -127,9 +127,5 @@ contract Scoring is Owned {
     function getAreaScore(uint _area) private view returns(uint) {
         AreaScoring storage areaScoring = areaScorings[_area];
         return (areaScoring.sum * (10 ** SCORE_PRECISION) / areaScoring.maxSum) * areaScoring.maxScore;
-    }
-
-    function addEstimate(uint _questionId, address _expertAddress, uint _score, bytes32 _commentHash) private {
-        estimates.push(Estimate(_questionId, _expertAddress, _score, _commentHash));
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.22;
+pragma solidity ^ 0.4.23;
 
 import "./Owned.sol";
 import "./ExpertsRegistry.sol";
@@ -6,6 +6,14 @@ import "./RandomGenerator.sol";
 import "./ScoringsRegistry.sol";
 
 contract ScoringExpertsManager is Owned {
+
+    enum OfferState {
+        Pending,
+        Accepted,
+        Rejected,
+        Finished,
+        Expired
+    }
 
     ExpertsRegistry public expertsRegistry;
     AdministratorsRegistry public administratorsRegistry;
@@ -83,18 +91,22 @@ contract ScoringExpertsManager is Owned {
         for (uint i = 0; i < areas.length; i++) {
             makeOffers(_projectId, areas[i]);
         }
+
+        scoringsRegistry.setPendingOffersExpirationTimestamp(_projectId, now + offerExpirationPeriod);
     }
 
     function selectMissingExperts(uint _projectId) external onlyAdministrators {
         require(scoringsRegistry.getScoringAddressById(_projectId) != 0, "scoring for specified project is not started yet");
         require(!hasPendingOffers(_projectId), "there are still pending offers for specified scoring");
 
-        scoringsRegistry.setPendingOffersExpirationTimestamp(_projectId, now + offerExpirationPeriod);
-
         uint[] memory areas = scoringsRegistry.getScoringAreas(_projectId);
         for (uint i = 0; i < areas.length; i++) {
             makeOffers(_projectId, areas[i]);
+
+            updateExpiredOffersState(_projectId, areas[i]);
         }
+
+        scoringsRegistry.setPendingOffersExpirationTimestamp(_projectId, now + offerExpirationPeriod);
     }
 
     function setExperts(uint _projectId, uint[] _areas, address[] _experts) external onlyAdministrators {
@@ -102,16 +114,15 @@ contract ScoringExpertsManager is Owned {
             uint area = _areas[i];
             address expert = _experts[i];
 
-            require(getVacantExpertPositionsCount(_projectId, area) > 0);
+            require(isOfferReadyForScoring(expert, _projectId, area) || getVacantExpertPositionsCount(_projectId, area) > 0);
 
-            uint offerState = scoringsRegistry.getOfferState(_projectId, area, expert);
-            require(offerState != 1);
+            uint scoringDeadline = now + scoringExpirationPeriod;
 
-            if (offerState == 0) {
-                scoringsRegistry.addOffer(_projectId, area, expert, 1, now + scoringExpirationPeriod);
+            if (doesOfferExist(_projectId, area, expert)) {
+                setOfferState(_projectId, area, expert, OfferState.Accepted);
+                scoringsRegistry.setScoringDeadline(_projectId, area, expert, scoringDeadline);
             } else {
-                scoringsRegistry.setOfferState(_projectId, area, expert, 1);
-                scoringsRegistry.setScoringDeadline(_projectId, area, expert, now + scoringExpirationPeriod);
+                scoringsRegistry.addOffer(_projectId, area, expert, uint(OfferState.Accepted), scoringDeadline);
             }
         }
     }
@@ -147,7 +158,7 @@ contract ScoringExpertsManager is Owned {
         require(doesOfferExist(_projectId, _area, msg.sender), "offer does not exist");
         require(isOfferPending(_projectId, _area, msg.sender), "offer is not in pending state");
 
-        scoringsRegistry.setOfferState(_projectId, _area, msg.sender, 2);
+        setOfferState(_projectId, _area, msg.sender, OfferState.Rejected);
     }
 
     function accept(uint _projectId, uint _area) external {
@@ -155,7 +166,7 @@ contract ScoringExpertsManager is Owned {
         require(isOfferPending(_projectId, _area, msg.sender), "offer is not in pending state");
         require(getVacantExpertPositionsCount(_projectId, _area) > 0);
 
-        scoringsRegistry.setOfferState(_projectId, _area, msg.sender, 1);
+        setOfferState(_projectId, _area, msg.sender, OfferState.Accepted);
         scoringsRegistry.setScoringDeadline(_projectId, _area, msg.sender, now + scoringExpirationPeriod);
     }
 
@@ -163,7 +174,7 @@ contract ScoringExpertsManager is Owned {
         require(doesOfferExist(_projectId, _area, _expert), "offer does not exist");
         require(isOfferReadyForScoring(_expert, _projectId, _area), "offer is not in valid state for scoring");
 
-        scoringsRegistry.setOfferState(_projectId, _area, _expert, 3);
+        setOfferState(_projectId, _area, _expert, OfferState.Finished);
     }
 
     function getOffersCount(uint _projectId) private view returns(uint) {
@@ -204,18 +215,18 @@ contract ScoringExpertsManager is Owned {
         uint[] memory indices = generateExpertIndices(_projectId, _area, expertsCount);
         for (uint i = 0; i < indices.length; i++) {
             address expert = expertsRegistry.expertsByAreaMap(_area, indices[i]);
-            scoringsRegistry.addOffer(_projectId, _area, expert, 0, 0);
+            scoringsRegistry.addOffer(_projectId, _area, expert, uint(OfferState.Pending), 0);
         }
     }
 
     function isOfferReadyForScoring(address _expert, uint _projectId, uint _area) private view returns(bool) {
-        return scoringsRegistry.getOfferState(_projectId, _area, _expert) == 1
-            && scoringsRegistry.getScoringDeadline(_projectId, _area, _expert) >= now;
+        return getOfferState(_projectId, _area, _expert) == OfferState.Accepted &&
+            scoringsRegistry.getScoringDeadline(_projectId, _area, _expert) >= now;
     }
 
     function isOfferPending(uint _projectId, uint _area, address _expert) private view returns(bool) {
-        return scoringsRegistry.getOfferState(_projectId, _area, _expert) == 0 
-            && scoringsRegistry.getPendingOffersExpirationTimestamp(_projectId) >= now;
+        return getOfferState(_projectId, _area, _expert) == OfferState.Pending &&
+            scoringsRegistry.getPendingOffersExpirationTimestamp(_projectId) >= now;
     }
 
     function doesOfferExist(uint _projectId, uint _area, address _expert) private view returns(bool) {
@@ -250,5 +261,24 @@ contract ScoringExpertsManager is Owned {
             }
         }
         return scoringsRegistry.getRequiredExpertsCount(_projectId, _area) - currentExpertsCount;
+    }
+
+    function updateExpiredOffersState(uint _projectId, uint _area) private {
+        address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, _area);
+        for (uint i = 0; i < areaOffers.length; i++) {
+            address expert = areaOffers[i];
+            uint expirationTimestamp = scoringsRegistry.getPendingOffersExpirationTimestamp(_projectId);
+            if (getOfferState(_projectId, _area, expert) == OfferState.Pending && expirationTimestamp < now) {
+                setOfferState(_projectId, _area, expert, OfferState.Expired);
+            }
+        }
+    }
+
+    function setOfferState(uint _projectId, uint _area, address _expert, OfferState _state) private {
+        scoringsRegistry.setOfferState(_projectId, _area, _expert, uint(_state));
+    }
+
+    function getOfferState(uint _projectId, uint _area, address _expert) private view returns(OfferState) {
+        return OfferState(scoringsRegistry.getOfferState(_projectId, _area, _expert));
     }
 }
