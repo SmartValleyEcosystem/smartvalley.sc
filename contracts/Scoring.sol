@@ -12,8 +12,6 @@ contract Scoring is Owned {
 
     struct AreaScoring {
         uint estimateRewardWei;
-        uint expectedSubmissionsCount;
-        uint currentSubmissionsCount;
         uint maxScore;
         uint maxSum;
         uint sum;
@@ -27,11 +25,10 @@ contract Scoring is Owned {
     mapping(uint => AreaScoring) public areaScorings;
     uint[] public areas;
 
-    constructor(address _author, uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWei, uint[] _areaMaxScores) public {
+    constructor(address _author, uint[] _areas, uint[] _areaEstimateRewardsWei, uint[] _areaMaxScores) public {
         author = _author;
         areas = _areas;
         for (uint i = 0; i < _areas.length; i++) {
-            areaScorings[areas[i]].expectedSubmissionsCount = _areaExpertCounts[i];
             areaScorings[areas[i]].estimateRewardWei = _areaEstimateRewardsWei[i];
             areaScorings[areas[i]].maxScore = _areaMaxScores[i];
         }
@@ -51,9 +48,6 @@ contract Scoring is Owned {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
         AreaScoring storage areaScoring = areaScorings[_area];
-        require(areaScoring.currentSubmissionsCount < areaScoring.expectedSubmissionsCount);
-
-        areaScoring.currentSubmissionsCount++;
         areaScoring.conclusionHashes[_expert] = _conclusionHash;
 
         for (uint i = 0; i < _questionIds.length; i++) {
@@ -63,7 +57,9 @@ contract Scoring is Owned {
             areaScoring.maxSum += 2 * _questionWeights[i];
         }
 
-        _expert.transfer(areaScoring.estimateRewardWei);
+        if (areaScoring.estimateRewardWei > 0) {
+            _expert.transfer(areaScoring.estimateRewardWei);
+        }
     }
 
     function getEstimates() external view returns(uint[] _questions, uint[] _scores, address[] _experts) {
@@ -84,39 +80,15 @@ contract Scoring is Owned {
         _experts = experts;
     }
 
-    function getResults() external view returns(bool _isScored, uint _score, uint[] _areas, bool[] _areaCompleteness, uint[] _areaScores) {
-        _isScored = true;
+    function getResults() external view returns(uint _score, uint[] _areas, uint[] _areaScores) {
         _areas = areas;
-        _areaCompleteness = new bool[](areas.length);
         _areaScores = new uint[](areas.length);
 
-        uint score = 0;
         for (uint i = 0; i < _areas.length; i++) {
-            AreaScoring storage areaScoring = areaScorings[_areas[i]];
-            bool isAreaCompleted = areaScoring.currentSubmissionsCount == areaScoring.expectedSubmissionsCount;
-            _areaCompleteness[i] = isAreaCompleted;
-            if (isAreaCompleted) {
-                uint areaScore = getAreaScore(_areas[i]);
-                _areaScores[i] = areaScore;
-                score += areaScore;
-            } else {
-                _isScored = false;
-            }
-        }
+            uint areaScore = getAreaScore(_areas[i]);
 
-        if(_isScored) {
-            _score = score;
-        }
-    }
-
-    function getScoringCost() external view returns(uint _scoringCost) {
-        _scoringCost = 0;
-
-        for (uint i = 0; i < areas.length; i++) {
-            uint expertsCount = areaScorings[areas[i]].expectedSubmissionsCount;
-            uint areaEstimateRewardWei = areaScorings[areas[i]].estimateRewardWei;
-
-            _scoringCost += areaEstimateRewardWei * expertsCount;
+            _areaScores[i] = areaScore;
+            _score += areaScore;
         }
     }
 
