@@ -61,6 +61,30 @@ contract ScoringManager is Owned {
         address(scoring).transfer(msg.value);
     }
 
+    function startPrivate(uint _projectId, uint[] _expertAreas, address[] _experts) external {
+        require(_expertAreas.length == _experts.length, "_areas and _experts sizes don't match");
+        require(scoringsRegistry.getScoringAddressById(_projectId) == 0, "scoring for specified project already exists");
+
+        uint[] memory areas = distinct(_expertAreas);
+        uint[] memory rewards = new uint[](areas.length);
+        uint[] memory areaMaxScores = new uint[](areas.length);
+        for (uint i = 0; i < areas.length; i++) {
+            rewards[i] = estimateRewardsInAreaMap[areas[i]];
+            areaMaxScores[i] = areaMaxScoresMap[areas[i]];
+        }
+
+        uint[] memory areaExpertCounts = new uint[](areas.length);
+        for (uint j = 0; j < _expertAreas.length; j++) {
+            uint areaIndex = indexOf(areas, _expertAreas[j]);
+            areaExpertCounts[areaIndex]++;
+        }
+
+        Scoring scoring = new Scoring(msg.sender, areas, areaExpertCounts, rewards, areaMaxScores); 
+        scoringsRegistry.addScoring(address(scoring), _projectId, areas, areaExpertCounts, scoringExpertsManager.offerExpirationPeriod());
+
+        scoringExpertsManager.setExperts(_projectId, _expertAreas, _experts);
+    }
+
     function submitEstimates(uint _projectId, uint _area, bytes32 _conclusionHash, uint[] _questionIds, uint[] _scores, bytes32[] _commentHashes) external {
         require(_questionIds.length == _scores.length && _scores.length == _commentHashes.length);
 
@@ -150,5 +174,45 @@ contract ScoringManager is Owned {
             cost += reward * _areaExpertCounts[i];
         }
         return cost;
+    }
+
+    function indexOf(uint[] _collection, uint _value) private pure returns(uint) {
+        for (uint i = 0; i < _collection.length; i++) {
+            if (_collection[i] == _value) {
+                return i;
+            }
+        }
+        return uint(-1);
+    }
+
+    function distinct(uint[] _collection) public pure returns(uint[]) {
+        if (_collection.length < 2) {
+            return _collection;
+        }
+
+        uint map = 0;
+        uint max = _collection[0];
+        uint uniqueElementsCount = 0;
+        for (uint i = 0; i < _collection.length; i++) {
+            if (map & 2 ** _collection[i] == 0) {
+                map |= 2 ** _collection[i];
+                uniqueElementsCount++;
+
+                if (_collection[i] > max) {
+                    max = _collection[i];
+                }
+            }
+        }
+
+        uint[] memory result = new uint[](uniqueElementsCount);
+        uint resultIndex = 0;
+        for (uint j = 0; j <= max; j++) {
+            if (map & 2 ** j != 0) {
+                result[resultIndex] = j;
+                resultIndex++;
+            }
+        }
+
+        return result;
     }
 }
