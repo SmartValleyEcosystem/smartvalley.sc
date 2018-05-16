@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.22;
+pragma solidity ^ 0.4.23;
 
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
@@ -26,7 +26,7 @@ contract ExpertsRegistry is Owned {
     mapping(address => Expert) public expertsMap;
     Application[] public applications;
     uint[] public availableAreas;
-    address public migrationHost;
+    address public migrationHostAddress;
 
     AdministratorsRegistry private administratorsRegistry;
 
@@ -40,14 +40,14 @@ contract ExpertsRegistry is Owned {
         _;
     }
 
-    function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
-        require(_administratorsRegistryAddress != 0);
-        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);    
+    function setAdministratorsRegistry(address _address) public onlyOwner {
+        require(_address != 0);
+        administratorsRegistry = AdministratorsRegistry(_address);
     }
-    
+
     function setMigrationHost(address _address) external onlyOwner {
         require(_address != 0);
-        migrationHost = _address;
+        migrationHostAddress = _address;
     }
 
     function setAvailableAreas(uint[] _areas) public onlyOwner {
@@ -58,7 +58,7 @@ contract ExpertsRegistry is Owned {
         require(_areas.length > 0 && applicationHash.length > 0);
 
         expertsMap[msg.sender].applicationHash = applicationHash;
-        
+
         for (uint i = 0; i < _areas.length; i++) {
             uint area = _areas[i];
             require(!expertsMap[msg.sender].areas[area].approved);
@@ -89,8 +89,11 @@ contract ExpertsRegistry is Owned {
 
         for (uint i = 0; i < availableAreas.length; i++) {
             uint area = availableAreas[i];
-            if (expertsMap[_expert].areas[area].applied)
-                expertsMap[_expert].areas[area].applied = false;
+
+            require(expertsMap[_expert].areas[area].applied);
+            require(!expertsMap[_expert].areas[area].approved);
+
+            expertsMap[_expert].areas[area].applied = false;
         }
 
         removeApplications(_expert);
@@ -135,6 +138,7 @@ contract ExpertsRegistry is Owned {
 
         for (uint i = 0; i < _areas.length; i++) {
             require(!expertsMap[_expert].areas[_areas[i]].approved);
+
             addInArea(_expert, _areas[i]);
         }
     }
@@ -176,21 +180,20 @@ contract ExpertsRegistry is Owned {
         _areas = areas;
     }
 
-    function migrateFromMigrationHost (uint _startIndex, uint _count, uint _area) external onlyOwner {
-        require(migrationHost != 0);
-        ExpertsRegistry expertsRegistry = ExpertsRegistry(migrationHost);
-        require(_startIndex + _count <= expertsRegistry.getExpertsCountInArea(_area));
+    function migrateFromHost(uint _startIndex, uint _count, uint _area) external onlyOwner {
+        require(migrationHostAddress != 0);
 
-        address[] memory experts = expertsRegistry.getExpertsInArea(_area);
+        ExpertsRegistry migrationHost = ExpertsRegistry(migrationHostAddress);
+
+        address[] memory experts = migrationHost.getExpertsInArea(_area);
+        require(_startIndex + _count <= experts.length);
 
         for (uint i = _startIndex; i < _startIndex + _count; i++) {
              address expert = experts[i];
              uint[] memory areas = new uint[](1);
              areas[0] = _area;
              addInternal(expert, areas);
-             expertsMap[expert].exists = true;
-             bytes32 applicationHash = expertsRegistry.getApplicationHash(expert);
-             setApplicationHash(expert, applicationHash);
+             setApplicationHash(expert, migrationHost.getApplicationHash(expert));
           }
      }
 

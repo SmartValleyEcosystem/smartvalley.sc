@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.22;
+pragma solidity ^ 0.4.23;
 
 import "./Owned.sol";
 
@@ -7,11 +7,6 @@ contract ScoringsRegistry is Owned {
     struct AreaScoring {
         uint requiredExpertsCount;
         address[] offers;
-        // Possible state values:
-        // - 0: Pending
-        // - 1: Accepted
-        // - 2: Rejected
-        // - 3: Finished
         mapping(address => uint) offerStates;
         mapping(address => uint) scoringDeadlines;
     }
@@ -28,7 +23,7 @@ contract ScoringsRegistry is Owned {
 
     address public scoringExpertsManagerAddress;
     address public scoringManagerAddress;
-    address public migrationHost;
+    address public migrationHostAddress;
 
     modifier onlyScroingExpertsManager {
         require(scoringExpertsManagerAddress == msg.sender);
@@ -37,11 +32,6 @@ contract ScoringsRegistry is Owned {
 
     modifier onlyScoringManager {
         require(scoringManagerAddress == msg.sender);
-        _;
-    }
-
-    modifier onlyMigrationHost {
-        require(migrationHost == msg.sender);
         _;
     }
 
@@ -57,7 +47,7 @@ contract ScoringsRegistry is Owned {
 
     function setMigrationHost(address _address) external onlyOwner {
         require(_address != 0);
-        migrationHost = _address;
+        migrationHostAddress = _address;
     }
 
     function getScoringsCount() public view returns (uint) {
@@ -92,7 +82,7 @@ contract ScoringsRegistry is Owned {
         addOfferInternal(_projectId, _area, _expert, _state, _deadline);
     }
 
-    function getOfferState(uint _projectId, uint _area, address _expert) public view returns (uint) {
+    function getOfferState(uint _projectId, uint _area, address _expert) public view returns(uint) {
         return scoringsMap[_projectId].areaScorings[_area].offerStates[_expert];
     }
 
@@ -100,7 +90,7 @@ contract ScoringsRegistry is Owned {
         setOfferStateInternal(_projectId,_area, _expert, _state);
     }
 
-    function getScoringDeadline(uint _projectId, uint _area, address _expert) public view returns (uint) {
+    function getScoringDeadline(uint _projectId, uint _area, address _expert) public view returns(uint) {
         return scoringsMap[_projectId].areaScorings[_area].scoringDeadlines[_expert];
     }
 
@@ -120,9 +110,10 @@ contract ScoringsRegistry is Owned {
         return scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount;
     }
 
-    function migrateScoringFromMigrationHost(uint _startIndex, uint _count) external onlyOwner {
-        require(migrationHost != 0);
-        ScoringsRegistry scoringRegistry = ScoringsRegistry(migrationHost);
+    function migrateFromHost(uint _startIndex, uint _count) external onlyOwner {
+        require(migrationHostAddress != 0, "migration host was not set");
+
+        ScoringsRegistry scoringRegistry = ScoringsRegistry(migrationHostAddress);
 
         require(_startIndex + _count <= scoringRegistry.getScoringsCount());
 
@@ -142,11 +133,11 @@ contract ScoringsRegistry is Owned {
 
                 setRequiredExpertsCount(projectId, area, scoringRegistry.getRequiredExpertsCount(projectId, area));
 
-                for (uint offerIndex = 0; offerIndex < scoringRegistry.getOffers(projectId, area).length; offerIndex++) {
-                    address offer = scoringRegistry.getOffers(projectId, area)[offerIndex];
-                    uint state = scoringRegistry.getOfferState(projectId, area, offer);
-                    uint deadline = scoringRegistry.getScoringDeadline(projectId, area, offer);
-                    addOfferInternal(projectId, area, offer, state, deadline);
+                address[] memory offers = scoringRegistry.getOffers(projectId, area);
+                for (uint offerIndex = 0; offerIndex < offers.length; offerIndex++) {
+                    uint state = scoringRegistry.getOfferState(projectId, area, offers[offerIndex]);
+                    uint deadline = scoringRegistry.getScoringDeadline(projectId, area, offers[offerIndex]);
+                    addOfferInternal(projectId, area, offers[offerIndex], state, deadline);
                 }
             }
         }

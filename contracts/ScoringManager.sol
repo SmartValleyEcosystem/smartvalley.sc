@@ -1,8 +1,7 @@
-pragma solidity ^ 0.4.22;
+pragma solidity ^ 0.4.23;
 
 import "./Owned.sol";
 import "./Scoring.sol";
-import "./VotingSprint.sol";
 import "./ScoringExpertsManager.sol";
 import "./AdministratorsRegistry.sol";
 import "./ScoringsRegistry.sol";
@@ -104,14 +103,14 @@ contract ScoringManager is Owned {
         }
     }
 
-    function setScoringExpertsManager(address _scoringExpertsManagerAddress) public onlyOwner {
-        require(_scoringExpertsManagerAddress != 0);
-        scoringExpertsManager = ScoringExpertsManager(_scoringExpertsManagerAddress);
+    function setScoringExpertsManager(address _address) public onlyOwner {
+        require(_address != 0);
+        scoringExpertsManager = ScoringExpertsManager(_address);
     }
 
-    function setAdministratorsRegistry(address _administratorsRegistryAddress) public onlyOwner {
-        require(_administratorsRegistryAddress != 0);
-        administratorsRegistry = AdministratorsRegistry(_administratorsRegistryAddress);
+    function setAdministratorsRegistry(address _address) public onlyOwner {
+        require(_address != 0);
+        administratorsRegistry = AdministratorsRegistry(_address);
     }
 
     function setScoringsRegistry(address _address) public onlyOwner {

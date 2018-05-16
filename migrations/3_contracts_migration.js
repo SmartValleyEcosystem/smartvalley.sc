@@ -1,7 +1,5 @@
-var VotingManagerMock = artifacts.require("./mock/VotingManagerMock.sol");
 var ScoringManagerMock = artifacts.require("./mock/ScoringManagerMock.sol");
 
-var VotingManager = artifacts.require("./VotingManager.sol");
 var ScoringManager = artifacts.require("./ScoringManager.sol");
 var AdministratorsRegistry = artifacts.require("./AdministratorsRegistry.sol");
 var ExpertsRegistry = artifacts.require("./ExpertsRegistry.sol");
@@ -18,19 +16,13 @@ module.exports = function(deployer) {
   let areaMaxScores =       [16, 23, 17, 27, 17];
   let areaEstimateRewards = [ 1,  1,  1,  1,  1];
 
-  let voting; 
-  let scoring;
   let scoringExpertsManager;
   let expertsRegistry;
   let scoringsRegistry;
   let administratorsRegistry;
 
   function getRewards() {
-    rewardsWei = [];
-    for (i = 0; i < areas.length; i++) {
-        rewardsWei.push(web3.toWei(areaEstimateRewards[i]))
-    }  
-    return rewardsWei;
+    return areaEstimateRewards.map(r => web3.toWei(r));
   }
 
   if(deployer.network.includes('mock_')) {
@@ -73,10 +65,9 @@ module.exports = function(deployer) {
     .then(() => {
       return ScoringManagerMock.deployed();
     })
-    .then((scoringInstance) => {
-      scoring = scoringInstance;
-      scoring.setQuestions(questions, questionWeights);
-      scoringExpertsManager.setScoringManager(scoring.address);
+    .then((scoringManagerInstance) => {
+      scoringManagerInstance.setQuestions(questions, questionWeights);
+      scoringExpertsManager.setScoringManager(scoringManagerInstance.address);
     });
   } else {
     deployer.deploy(AdministratorsRegistry)
@@ -118,10 +109,9 @@ module.exports = function(deployer) {
     .then(() => {
       return ScoringManager.deployed();
     })
-    .then((scoringInstance) => {
-      scoring = scoringInstance;
-      scoring.setQuestions(questions, questionWeights);
-      scoringExpertsManager.setScoringManager(scoring.address);
+    .then((scoringManagerInstance) => {
+      scoringManagerInstance.setQuestions(questions, questionWeights);
+      scoringExpertsManager.setScoringManager(scoringManagerInstance.address);
     });
   }
 }
