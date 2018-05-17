@@ -53,7 +53,7 @@ contract ScoringManager is Owned {
             areaMaxScores[i] = areaMaxScoresMap[_areas[i]];
         }
 
-        Scoring scoring = new Scoring(msg.sender, _areas, _areaExpertCounts, rewards, areaMaxScores); 
+        Scoring scoring = new Scoring(msg.sender, _areas, rewards, areaMaxScores); 
         scoringsRegistry.addScoring(address(scoring), _projectId, _areas, _areaExpertCounts, scoringExpertsManager.offerExpirationPeriod());
 
         scoringExpertsManager.selectExperts(_projectId);
@@ -79,7 +79,7 @@ contract ScoringManager is Owned {
             areaExpertCounts[areaIndex]++;
         }
 
-        Scoring scoring = new Scoring(msg.sender, areas, areaExpertCounts, rewards, areaMaxScores); 
+        Scoring scoring = new Scoring(msg.sender, areas, rewards, areaMaxScores); 
         scoringsRegistry.addScoring(address(scoring), _projectId, areas, areaExpertCounts, scoringExpertsManager.offerExpirationPeriod());
 
         scoringExpertsManager.setExperts(_projectId, _expertAreas, _experts);
@@ -168,7 +168,6 @@ contract ScoringManager is Owned {
 
     function getScoringCost(uint[] _areas, uint[] _areaExpertCounts) private view returns(uint) {
         uint cost = 0;
-
         for (uint i = 0; i < _areas.length; i++) {
             uint reward = estimateRewardsInAreaMap[_areas[i]];
             cost += reward * _areaExpertCounts[i];
