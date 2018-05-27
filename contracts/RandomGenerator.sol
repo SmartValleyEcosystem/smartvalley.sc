@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4.23;
+pragma solidity ^ 0.4.24;
 
 library RandomGenerator {
 
@@ -26,7 +26,7 @@ library RandomGenerator {
     }
 
     function getSomeNumber(uint _seed, uint _ceiling) private view returns(uint) {
-        return uint(keccak256(uint(blockhash(block.number - 1)), _seed)) % _ceiling;
+        return uint(keccak256(abi.encodePacked(uint(blockhash(block.number - 1)), _seed))) % _ceiling;
     }
 
     function ensureUnique(uint _number, uint _ceiling, uint[] _uniquenessMap) private pure returns(uint) {
