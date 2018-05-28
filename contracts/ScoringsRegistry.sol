@@ -19,8 +19,6 @@ contract ScoringsRegistry is Owned {
         mapping(uint => AreaScoring) areaScorings;
     }
 
-    uint constant UINT_MAX = ~uint(0);
-
     uint[] public projectIds;
     mapping(uint => ScoringInfo) public scoringsMap;
 
@@ -56,7 +54,7 @@ contract ScoringsRegistry is Owned {
     }
 
     function addScoring(address _scoringAddress, uint _projectId, uint[] _areas, uint[] _areaExpertCounts) external onlyScoringManager {
-        addScoringInternal(_scoringAddress, _projectId, _areas, _areaExpertCounts, UINT_MAX, UINT_MAX);
+        addScoringInternal(_scoringAddress, _projectId, _areas, _areaExpertCounts, 0, 0);
     }
 
     function getScoringAreas(uint _projectId) external view returns(uint[]) {

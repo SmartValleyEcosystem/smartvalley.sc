@@ -92,7 +92,7 @@ contract ScoringOffersManager is Owned {
             uint area = _areas[i];
             address expert = _experts[i];
 
-            require(isOfferReadyForScoring(expert, _projectId, area) || getVacantExpertPositionsCount(_projectId, area) > 0);
+            require(isOfferReadyForScoring(_projectId, area, expert) || getVacantExpertPositionsCount(_projectId, area) > 0);
             require(expertsRegistry.isApproved(expert, area));
 
             if (doesOfferExist(_projectId, area, expert)) {
@@ -172,7 +172,7 @@ contract ScoringOffersManager is Owned {
 
     function finish(uint _projectId, uint _area, address _expert) external onlyScoringManager {
         require(doesOfferExist(_projectId, _area, _expert), "offer does not exist");
-        require(isOfferReadyForScoring(_expert, _projectId, _area), "offer is not in valid state for scoring");
+        require(isOfferReadyForScoring(_projectId, _area, _expert), "offer is not in valid state for scoring");
 
         setOfferState(_projectId, _area, _expert, OfferState.Finished);
     }
@@ -260,14 +260,12 @@ contract ScoringOffersManager is Owned {
         }
     }
 
-    function isOfferReadyForScoring(address _expert, uint _projectId, uint _area) private view returns(bool) {
-        return getOfferState(_projectId, _area, _expert) == OfferState.Accepted &&
-            scoringsRegistry.getScoringDeadline(_projectId) >= now;
+    function isOfferReadyForScoring(uint _projectId, uint _area, address _expert) private view returns(bool) {
+        return getOfferState(_projectId, _area, _expert) == OfferState.Accepted && !hasScoringDeadlinePassed(_projectId);
     }
 
     function isOfferPending(uint _projectId, uint _area, address _expert) private view returns(bool) {
-        return getOfferState(_projectId, _area, _expert) == OfferState.Pending &&
-            scoringsRegistry.getAcceptingDeadline(_projectId) >= now;
+        return getOfferState(_projectId, _area, _expert) == OfferState.Pending && !hasAcceptingDeadlinePassed(_projectId);
     }
 
     function isOfferFinished(uint _projectId, uint _area, address _expert) private view returns(bool) {
@@ -301,7 +299,7 @@ contract ScoringOffersManager is Owned {
         uint currentExpertsCount = 0;
         address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, _area);
         for (uint i = 0; i < areaOffers.length; i++) {
-            if (isOfferReadyForScoring(areaOffers[i], _projectId, _area)) {
+            if (isOfferReadyForScoring(_projectId, _area, areaOffers[i])) {
                 currentExpertsCount++;
             }
         }
@@ -310,12 +308,11 @@ contract ScoringOffersManager is Owned {
 
     function updateExpiredOffersState(uint _projectId, uint _area) private {
         address[] memory areaOffers = scoringsRegistry.getOffers(_projectId, _area);
-        uint acceptingDeadline = scoringsRegistry.getAcceptingDeadline(_projectId);
-        uint scoringDeadline = scoringsRegistry.getScoringDeadline(_projectId);
         for (uint i = 0; i < areaOffers.length; i++) {
             address expert = areaOffers[i];
             OfferState state = getOfferState(_projectId, _area, expert);
-            if ((state == OfferState.Pending && acceptingDeadline < now) || (state == OfferState.Accepted && scoringDeadline < now)) {
+            if ((state == OfferState.Pending && hasAcceptingDeadlinePassed(_projectId)) ||
+                (state == OfferState.Accepted && hasScoringDeadlinePassed(_projectId))) {
                 setOfferState(_projectId, _area, expert, OfferState.Expired);
             }
         }
@@ -358,5 +355,15 @@ contract ScoringOffersManager is Owned {
 
     function getOfferState(uint _projectId, uint _area, address _expert) private view returns(OfferState) {
         return OfferState(scoringsRegistry.getOfferState(_projectId, _area, _expert));
+    }
+
+    function hasAcceptingDeadlinePassed(uint _projectId) private view returns(bool) {
+        uint acceptingDeadline = scoringsRegistry.getAcceptingDeadline(_projectId);
+        return acceptingDeadline != 0 && acceptingDeadline < now;
+    }
+
+    function hasScoringDeadlinePassed(uint _projectId) private view returns(bool) {
+        uint scoringDeadline = scoringsRegistry.getScoringDeadline(_projectId);
+        return scoringDeadline != 0 && scoringDeadline < now;
     }
 }

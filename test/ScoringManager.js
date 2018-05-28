@@ -137,7 +137,7 @@ contract('ScoringManager', async function(accounts) {
         await scoringOffersManager.setPrivateScoringManager(privateScoringManager.address, {from: owner});
     });
 
-    it('expert should send estimates by area to scoring', async function() {
+    it.only('expert should send estimates by area to scoring', async function() {
         const projectId = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         console.log('STARTING SCORING...');
@@ -171,7 +171,7 @@ contract('ScoringManager', async function(accounts) {
         assert.equal(+offers[2][1].toString(), 2, 'second offer should be rejected');
     });
 
-    it.only('expert should send estimates by area to private scoring', async function() {
+    it('expert should send estimates by area to private scoring', async function() {
         const projectId = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         console.log('STARTING PRIVATE SCORING...');
