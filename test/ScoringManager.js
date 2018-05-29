@@ -110,8 +110,8 @@ contract('ScoringManager', async function(accounts) {
     beforeEach(async function(){
         owner = accounts[8];
 
-        scoringParametersProvider = await ScoringParametersProvider.new({from: owner});
         administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
+        scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});
         expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, scoringParametersProvider.address, {from: owner});
         randomGenerator = await RandomGenerator.new({from: owner});
         arrayExtensions = await ArrayExtensions.new({from: owner});

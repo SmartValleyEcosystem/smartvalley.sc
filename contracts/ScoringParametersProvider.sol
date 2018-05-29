@@ -1,6 +1,7 @@
 pragma solidity ^ 0.4.24;
 
 import "./Owned.sol";
+import "./AdministratorsRegistry.sol";
 
 contract ScoringParametersProvider is Owned {
     struct Area {
@@ -21,6 +22,17 @@ contract ScoringParametersProvider is Owned {
     uint[] public criteria;
     mapping(uint => Criterion) public criteriaMap;
 
+    AdministratorsRegistry public administratorsRegistry;
+
+    constructor(address _administratorsRegistryAddress) public {
+        setAdministratorsRegistry(_administratorsRegistryAddress);
+    }
+
+    modifier onlyAdministrators {
+        require(administratorsRegistry.isAdministrator(msg.sender));
+        _;
+    }
+
     function getCriterionWeight(uint _criterionId) external view returns(uint) {
         require(criteriaMap[_criterionId].id != 0, "specified criterion does not exist");
         return criteriaMap[_criterionId].weight;
@@ -39,6 +51,11 @@ contract ScoringParametersProvider is Owned {
     function getAreaReward(uint _areaId) external view returns(uint) {
         require(areasMap[_areaId].id != 0, "specified area does not exist");
         return areasMap[_areaId].reward;
+    }
+
+    function setAreaReward(uint _areaId, uint _value) external onlyAdministrators {
+        require(areasMap[_areaId].id != 0, "specified area does not exist");
+        areasMap[_areaId].reward = _value;
     }
 
     function getAreas() external view returns(uint[]) {
@@ -64,5 +81,10 @@ contract ScoringParametersProvider is Owned {
         for (uint i = 0; i < _criterionIds.length; i++) {
             criteriaMap[_criterionIds[i]] = Criterion(_criterionIds[i], _areaId, _criterionWeights[i]);
         }
+    }
+
+    function setAdministratorsRegistry(address _address) public onlyOwner {
+        require(_address != 0);
+        administratorsRegistry = AdministratorsRegistry(_address);
     }
 }

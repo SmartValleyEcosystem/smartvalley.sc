@@ -47,7 +47,11 @@ module.exports = function(deployer) {
   let scoringManager;
   let privateScoringManager;
 
-  deployer.deploy(ScoringParametersProvider)
+  deployer.deploy(AdministratorsRegistry)
+  .then(administratorsRegistryInstance => {
+    administratorsRegistry = administratorsRegistryInstance;
+    return deployer.deploy(ScoringParametersProvider, administratorsRegistry.address);
+  })
   .then(scoringParametersProviderInstance => {
     scoringParametersProvider = scoringParametersProviderInstance;
     return scoringParametersProvider.initializeAreaParameters(
@@ -90,11 +94,7 @@ module.exports = function(deployer) {
       marketerCriterionWeights);
   })
   .then(() => {
-    return deployer.deploy(AdministratorsRegistry);
-  })
-  .then(administratorsRegistryInstance => {
-    administratorsRegistry = administratorsRegistryInstance;
-    return deployer.deploy(ExpertsRegistry, administratorsRegistryInstance.address, scoringParametersProvider.address);
+    return deployer.deploy(ExpertsRegistry, administratorsRegistry.address, scoringParametersProvider.address);
   })
   .then(expertsRegistryInstance => {
     expertsRegistry = expertsRegistryInstance;
