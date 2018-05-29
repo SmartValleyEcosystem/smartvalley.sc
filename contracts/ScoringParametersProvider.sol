@@ -53,9 +53,11 @@ contract ScoringParametersProvider is Owned {
         return areasMap[_areaId].reward;
     }
 
-    function setAreaReward(uint _areaId, uint _value) external onlyAdministrators {
-        require(areasMap[_areaId].id != 0, "specified area does not exist");
-        areasMap[_areaId].reward = _value;
+    function setAreaRewards(uint[] _areaIds, uint[] _values) external onlyAdministrators {
+        for (uint i = 0; i < _areaIds.length; i++) {
+            require(areasMap[_areaIds[i]].id != 0, "specified area does not exist");
+            areasMap[_areaIds[i]].reward = _values[i];
+        }
     }
 
     function getAreas() external view returns(uint[]) {
