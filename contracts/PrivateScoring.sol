@@ -4,7 +4,7 @@ import "./Scoring.sol";
 
 contract PrivateScoring is Scoring {
 
-    constructor(address _author, address _scoringParametersProviderAddress) Scoring(_author, _scoringParametersProviderAddress) public {
+    constructor(address _scoringParametersProviderAddress) Scoring(_scoringParametersProviderAddress) public {
     }
 
     function removeEstimates(address _expertAddress, uint _area) external {
