@@ -12,7 +12,11 @@ module.exports = function(deployer) {
     let previousExpertsRegistryAddress = "";
     let expertsRegistryInstance;
 
-    deployer.deployed(ExpertsRegistry)
+    if (!previousExpertsRegistryAddress) {
+        return;
+    }
+
+    ExpertsRegistry.deployed()
     .then(expertsRegistry => {
         expertsRegistryInstance = expertsRegistry;
         return expertsRegistry.setMigrationHost(previousExpertsRegistryAddress);
