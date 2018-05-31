@@ -3,6 +3,7 @@ pragma solidity ^ 0.4.24;
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
 import "./ScoringParametersProvider.sol";
+import "./previous/PreviousExpertsRegistry.sol";
 
 contract ExpertsRegistry is Owned {
     struct Expert {
@@ -136,7 +137,9 @@ contract ExpertsRegistry is Owned {
     function add(address _expert, uint[] _areas) public onlyAdministrators {
         require(_areas.length > 0 && _expert != 0);
 
-        addInternal(_expert, _areas);
+        for (uint i = 0; i < _areas.length; i++) {
+            addInternal(_expert, _areas[i]);
+        }
     }
 
     function remove(address _expert) external onlyAdministrators {
@@ -177,19 +180,15 @@ contract ExpertsRegistry is Owned {
         _areas = areas;
     }
 
-    function migrateFromHost(uint _startIndex, uint _count, uint _area) external onlyOwner {
+    function migrateFromHost(uint _area) external onlyOwner {
         require(migrationHostAddress != 0);
 
-        ExpertsRegistry migrationHost = ExpertsRegistry(migrationHostAddress);
+        PreviousExpertsRegistry migrationHost = PreviousExpertsRegistry(migrationHostAddress);
 
         address[] memory experts = migrationHost.getExpertsInArea(_area);
-        require(_startIndex + _count <= experts.length);
-
-        for (uint i = _startIndex; i < _startIndex + _count; i++) {
+        for (uint i = 0; i < experts.length; i++) {
             address expert = experts[i];
-            uint[] memory areas = new uint[](1);
-            areas[0] = _area;
-            addInternal(expert, areas);
+            addInternal(expert, _area);
             setApplicationHash(expert, migrationHost.getApplicationHash(expert));
         }
      }
@@ -206,22 +205,22 @@ contract ExpertsRegistry is Owned {
         return result;
     }
 
-    function getExpertsInArea(uint _area) public view returns(address[]) {
+    function getExpertsInArea(uint _area) external view returns(address[]) {
         return expertsByAreaMap[_area];
     }
 
-    function getApplicationHash(address _expert) public view returns(bytes32) {
+    function getApplicationHash(address _expert) external view returns(bytes32) {
         return expertsMap[_expert].applicationHash;
     }
 
-    function addInternal(address _expert, uint[] _areas) private {
-        expertsMap[_expert].exists = true;
-
-        for (uint i = 0; i < _areas.length; i++) {
-            require(!expertsMap[_expert].areas[_areas[i]].approved);
-
-            addInArea(_expert, _areas[i]);
+    function addInternal(address _expert, uint _area) private {
+        if (!expertsMap[_expert].exists) {
+            expertsMap[_expert].exists = true;
         }
+
+        require(!expertsMap[_expert].areas[_area].approved);
+
+        addInArea(_expert, _area);
     }
 
     function isApproved(address _expert, uint _area) external view returns(bool) {

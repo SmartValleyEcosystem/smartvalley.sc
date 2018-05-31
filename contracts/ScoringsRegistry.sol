@@ -2,6 +2,7 @@ pragma solidity ^ 0.4.24;
 
 import "./Owned.sol";
 import "./Scoring.sol";
+import "./previous/PrevoiusScoringsRegistry.sol";
 
 contract ScoringsRegistry is Owned {
 
@@ -37,19 +38,19 @@ contract ScoringsRegistry is Owned {
         _;
     }
 
-    function getScoringsCount() public view returns (uint) {
+    function getScoringsCount() external view returns (uint) {
         return projectIds.length;
     }
 
-    function getScoringAddressByIndex(uint _index) public view returns (address) {
-        return getScoringAddressById(projectIds[_index]);
+    function getScoringAddressByIndex(uint _index) external view returns (address) {
+        return scoringsMap[projectIds[_index]].contractAddress;
     }
 
-    function getProjectIdByIndex(uint _index) public view returns (uint) {
+    function getProjectIdByIndex(uint _index) external view returns (uint) {
         return projectIds[_index];
     }
 
-    function getScoringAddressById(uint _projectId) public view returns (address) {
+    function getScoringAddressById(uint _projectId) external view returns (address) {
         return scoringsMap[_projectId].contractAddress;
     }
 
@@ -57,11 +58,15 @@ contract ScoringsRegistry is Owned {
         addScoringInternal(_scoringAddress, _projectId, _areas, _areaExpertCounts, 0, 0);
     }
 
+    function setScoringAddress(uint _projectId, address _contractAddress) external onlyScoringManager {
+        scoringsMap[_projectId].contractAddress = _contractAddress;
+    }
+
     function getScoringAreas(uint _projectId) external view returns(uint[]) {
         return scoringsMap[_projectId].areas;
     }
 
-    function getOffers(uint _projectId, uint _area) public view returns (address[]) {
+    function getOffers(uint _projectId, uint _area) external view returns (address[]) {
         return scoringsMap[_projectId].areaScorings[_area].offers;
     }
 
@@ -87,7 +92,7 @@ contract ScoringsRegistry is Owned {
         }
     }
 
-    function getOfferState(uint _projectId, uint _area, address _expert) public view returns(uint) {
+    function getOfferState(uint _projectId, uint _area, address _expert) external view returns(uint) {
         return scoringsMap[_projectId].areaScorings[_area].offerStates[_expert];
     }
 
@@ -95,7 +100,7 @@ contract ScoringsRegistry is Owned {
         setOfferStateInternal(_projectId,_area, _expert, _state);
     }
 
-    function getScoringDeadline(uint _projectId) public view returns(uint) {
+    function getScoringDeadline(uint _projectId) external view returns(uint) {
         return scoringsMap[_projectId].scoringDeadline;
     }
 
@@ -111,7 +116,7 @@ contract ScoringsRegistry is Owned {
         scoringsMap[_projectId].acceptingDeadline = _value;
     }
 
-    function getRequiredExpertsCount(uint _projectId, uint _area) public view returns (uint) {
+    function getRequiredExpertsCount(uint _projectId, uint _area) external view returns (uint) {
         return scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount;
     }
 
@@ -126,20 +131,21 @@ contract ScoringsRegistry is Owned {
     function migrateFromHost(uint _startIndex, uint _count) external onlyOwner {
         require(migrationHostAddress != 0, "migration host was not set");
 
-        ScoringsRegistry migrationHost = ScoringsRegistry(migrationHostAddress);
+        PrevoiusScoringsRegistry migrationHost = PrevoiusScoringsRegistry(migrationHostAddress);
 
         require(_startIndex + _count <= migrationHost.getScoringsCount());
 
         for (uint i = _startIndex; i < _startIndex + _count; i++) {
             uint projectId = migrationHost.getProjectIdByIndex(i);
             uint[] memory areas = migrationHost.getScoringAreas(projectId);
+            uint acceptingDeadline = migrationHost.getPendingOffersExpirationTimestamp(projectId);
             addScoringInternal(
                 migrationHost.getScoringAddressByIndex(i),
                 projectId,
                 areas,
                 new uint[](areas.length),
-                migrationHost.getAcceptingDeadline(projectId),
-                migrationHost.getScoringDeadline(projectId));
+                acceptingDeadline,
+                acceptingDeadline + 2 days);
 
             for (uint areaIndex = 0; areaIndex < areas.length; areaIndex++) {
                 uint area = areas[areaIndex];

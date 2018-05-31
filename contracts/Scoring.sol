@@ -15,13 +15,11 @@ contract Scoring is Owned {
     uint public SCORE_PRECISION = 2;
 
     ScoringParametersProvider public scoringParametersProvider;
-    address public author;
 
     mapping(uint => Estimate[]) public estimates;
     mapping(uint => mapping(address => bytes32)) conclusionHashes;
 
-    constructor(address _author, address _scoringParametersProviderAddress) public {
-        author = _author;
+    constructor(address _scoringParametersProviderAddress) public {
         scoringParametersProvider = ScoringParametersProvider(_scoringParametersProviderAddress);
     }
 
@@ -40,6 +38,8 @@ contract Scoring is Owned {
         conclusionHashes[_area][_expert] = _conclusionHash;
 
         for (uint i = 0; i < _criterionIds.length; i++) {
+            require(scoringParametersProvider.getCriterionArea(_criterionIds[i]) == _area);
+
             estimates[_area].push(Estimate(_criterionIds[i], _expert, _scores[i], _commentHashes[i]));
         }
 
