@@ -87,26 +87,7 @@ contract ScoringOffersManager is Owned {
         scoringsRegistry.setScoringDeadline(_projectId, scoringDeadline);
     }
 
-    function set(uint _projectId, uint[] _areas, address[] _experts) external onlyAdministrators {
-        for (uint i = 0; i < _areas.length; i++) {
-            uint area = _areas[i];
-            address expert = _experts[i];
-
-            require(isOfferReadyForScoring(_projectId, area, expert) || getVacantExpertPositionsCount(_projectId, area) > 0);
-            require(expertsRegistry.isApproved(expert, area));
-
-            if (doesOfferExist(_projectId, area, expert)) {
-                setOfferState(_projectId, area, expert, OfferState.Accepted);
-            } else {
-                scoringsRegistry.addOffer(_projectId, area, expert, uint(OfferState.Accepted));
-            }
-
-            uint scoringDeadline = now + scoringExpirationPeriod;
-            scoringsRegistry.setScoringDeadline(_projectId, scoringDeadline);
-        }
-    }
-
-    function forceSet(uint _projectId, uint[] _expertAreas, address[] _experts) external {
+    function set(uint _projectId, uint[] _expertAreas, address[] _experts) external {
         require(msg.sender == privateScoringManagerAddress || administratorsRegistry.isAdministrator(msg.sender));
 
         removeNotActualOffers(_projectId, _expertAreas, _experts);

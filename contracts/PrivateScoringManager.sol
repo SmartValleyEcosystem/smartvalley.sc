@@ -28,6 +28,6 @@ contract PrivateScoringManager is ScoringManagerBase {
         PrivateScoring scoring = new PrivateScoring(address(scoringParametersProvider));
         scoringsRegistry.addScoring(address(scoring), _projectId, areas, new uint[](areas.length));
 
-        scoringOffersManager.forceSet(_projectId, _expertAreas, _experts);
+        scoringOffersManager.set(_projectId, _expertAreas, _experts);
     }
 }
