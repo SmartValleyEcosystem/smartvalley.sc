@@ -229,7 +229,7 @@ contract('ScoringManager', async function(accounts) {
         let newExpertAreas = [hrAreaId,     analystAreaId,     lawyerAreaId,     lawyerAreaId];
         let newExperts =     [hrExperts[0], analystExperts[0], lawyerExperts[2], lawyerExperts[3]];
 
-        var setExpertsTransaction = await scoringOffersManager.forceSet(projectId, newExpertAreas, newExperts, {from: owner});
+        var setExpertsTransaction = await scoringOffersManager.set(projectId, newExpertAreas, newExperts, {from: owner});
         console.log(`GAS USED: ${setExpertsTransaction.receipt.gasUsed}`);
 
         results = await scoring.getResults();
