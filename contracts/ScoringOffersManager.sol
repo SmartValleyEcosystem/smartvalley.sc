@@ -75,9 +75,9 @@ contract ScoringOffersManager is Owned {
         require(!hasPendingOffers(_projectId, areas), "there are still pending offers for specified scoring");
 
         for (uint i = 0; i < areas.length; i++) {
-            generateInArea(_projectId, areas[i]);
-
             updateExpiredOffersState(_projectId, areas[i]);
+
+            generateInArea(_projectId, areas[i]);
         }
 
         uint acceptingDeadline = now + offerExpirationPeriod;
