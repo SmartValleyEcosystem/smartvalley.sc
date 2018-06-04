@@ -59,11 +59,7 @@ contract ScoringOffersManager is Owned {
             generateInArea(_projectId, _areas[i]);
         }
 
-        uint acceptingDeadline = now + offerExpirationPeriod;
-        scoringsRegistry.setAcceptingDeadline(_projectId, acceptingDeadline);
-
-        uint scoringDeadline = acceptingDeadline + scoringExpirationPeriod;
-        scoringsRegistry.setScoringDeadline(_projectId, scoringDeadline);
+        scoringsRegistry.setAcceptingDeadline(_projectId, now + offerExpirationPeriod);
     }
 
     function regenerate(uint _projectId) external onlyAdministrators {
@@ -80,11 +76,7 @@ contract ScoringOffersManager is Owned {
             generateInArea(_projectId, areas[i]);
         }
 
-        uint acceptingDeadline = now + offerExpirationPeriod;
-        scoringsRegistry.setAcceptingDeadline(_projectId, acceptingDeadline);
-
-        uint scoringDeadline = acceptingDeadline + scoringExpirationPeriod;
-        scoringsRegistry.setScoringDeadline(_projectId, scoringDeadline);
+        scoringsRegistry.setAcceptingDeadline(_projectId, now + offerExpirationPeriod);
     }
 
     function set(uint _projectId, uint[] _expertAreas, address[] _experts) external {
@@ -115,7 +107,7 @@ contract ScoringOffersManager is Owned {
         _states = new uint[](offersCount);
         _experts = new address[](offersCount);
         _acceptingDeadline = scoringsRegistry.getAcceptingDeadline(_projectId);
-        _scoringDeadline = scoringsRegistry.getScoringDeadline(_projectId);
+        _scoringDeadline = getScoringDeadline(_projectId);
 
         uint resutIndex = 0;
         address scoringAddress = scoringsRegistry.getScoringAddressById(_projectId);
@@ -344,7 +336,15 @@ contract ScoringOffersManager is Owned {
     }
 
     function hasScoringDeadlinePassed(uint _projectId) private view returns(bool) {
-        uint scoringDeadline = scoringsRegistry.getScoringDeadline(_projectId);
+        uint scoringDeadline = getScoringDeadline(_projectId);
         return scoringDeadline != 0 && scoringDeadline < now;
+    }
+
+    function getScoringDeadline(uint _projectId) private view returns(uint) {
+        uint acceptingDeadline = scoringsRegistry.getAcceptingDeadline(_projectId);
+        if (acceptingDeadline == 0) {
+            return 0;
+        }
+        return acceptingDeadline + scoringExpirationPeriod;
     }
 }

@@ -15,8 +15,6 @@ contract ScoringsRegistry is Owned {
     struct ScoringInfo {
         address contractAddress;
         uint acceptingDeadline;
-        uint scoringDeadline;
-        uint[] areas;
         mapping(uint => AreaScoring) areaScorings;
     }
 
@@ -55,15 +53,11 @@ contract ScoringsRegistry is Owned {
     }
 
     function addScoring(address _scoringAddress, uint _projectId, uint[] _areas, uint[] _areaExpertCounts) external onlyScoringManager {
-        addScoringInternal(_scoringAddress, _projectId, _areas, _areaExpertCounts, 0, 0);
+        addScoringInternal(_scoringAddress, _projectId, _areas, _areaExpertCounts, 0);
     }
 
     function setScoringAddress(uint _projectId, address _contractAddress) external onlyScoringManager {
         scoringsMap[_projectId].contractAddress = _contractAddress;
-    }
-
-    function getScoringAreas(uint _projectId) external view returns(uint[]) {
-        return scoringsMap[_projectId].areas;
     }
 
     function getOffers(uint _projectId, uint _area) external view returns (address[]) {
@@ -100,14 +94,6 @@ contract ScoringsRegistry is Owned {
         setOfferStateInternal(_projectId,_area, _expert, _state);
     }
 
-    function getScoringDeadline(uint _projectId) external view returns(uint) {
-        return scoringsMap[_projectId].scoringDeadline;
-    }
-
-    function setScoringDeadline(uint _projectId, uint _deadline) external onlyScoringOffersManager {
-        setScoringDeadlineInternal(_projectId, _deadline);
-    }
-
     function getAcceptingDeadline(uint _projectId) external view returns(uint) {
         return scoringsMap[_projectId].acceptingDeadline;
     }
@@ -121,7 +107,8 @@ contract ScoringsRegistry is Owned {
     }
 
     function getRequiredExpertsCounts(uint _projectId) external view returns (uint[] _counts, uint[] _areas) {
-        _areas = scoringsMap[_projectId].areas;
+        address scoringAddress = scoringsMap[_projectId].contractAddress;
+        _areas = Scoring(scoringAddress).getAreas();
         _counts = new uint[](_areas.length);
 
         for (uint i = 0; i < _areas.length; i++) {
@@ -153,8 +140,7 @@ contract ScoringsRegistry is Owned {
                 projectId,
                 areas,
                 new uint[](areas.length),
-                acceptingDeadline,
-                acceptingDeadline + 2 days);
+                acceptingDeadline);
 
             for (uint areaIndex = 0; areaIndex < areas.length; areaIndex++) {
                 uint area = areas[areaIndex];
@@ -190,9 +176,9 @@ contract ScoringsRegistry is Owned {
         migrationHostAddress = _address;
     }
 
-    function addScoringInternal(address _scoringAddress, uint _projectId, uint[] _areas, uint[] _areaExpertCounts, uint _acceptingDeadline, uint _scoringDeadline) private {
+    function addScoringInternal(address _scoringAddress, uint _projectId, uint[] _areas, uint[] _areaExpertCounts, uint _acceptingDeadline) private {
         projectIds.push(_projectId);
-        scoringsMap[_projectId] = ScoringInfo(_scoringAddress, _acceptingDeadline, _scoringDeadline, _areas);
+        scoringsMap[_projectId] = ScoringInfo(_scoringAddress, _acceptingDeadline);
 
         for (uint i = 0; i < _areas.length; i++) {
             scoringsMap[_projectId].areaScorings[_areas[i]] = AreaScoring(_areaExpertCounts[i], new address[](0));
@@ -208,11 +194,6 @@ contract ScoringsRegistry is Owned {
     function setOfferStateInternal(uint _projectId, uint _area, address _expert, uint _state) private {
         if (scoringsMap[_projectId].areaScorings[_area].offerStates[_expert] != _state)
             scoringsMap[_projectId].areaScorings[_area].offerStates[_expert] = _state;
-    }
-
-    function setScoringDeadlineInternal(uint _projectId, uint _deadline) private {
-        if (scoringsMap[_projectId].scoringDeadline != _deadline)
-            scoringsMap[_projectId].scoringDeadline = _deadline;
     }
 
     function setRequiredExpertsCount(uint _projectId, uint _area, uint count) private {
