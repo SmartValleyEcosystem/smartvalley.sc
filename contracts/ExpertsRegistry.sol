@@ -95,9 +95,7 @@ contract ExpertsRegistry is Owned {
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
 
-            require(expertsMap[_expert].areas[area].applied);
             require(!expertsMap[_expert].areas[area].approved);
-
             expertsMap[_expert].areas[area].applied = false;
         }
 
@@ -191,7 +189,7 @@ contract ExpertsRegistry is Owned {
             addInternal(expert, _area);
             setApplicationHash(expert, migrationHost.getApplicationHash(expert));
         }
-     }
+    }
 
     function getExpertsCountInArea(uint _area) external view returns(uint) {
         return expertsByAreaMap[_area].length;
