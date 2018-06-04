@@ -1,7 +1,34 @@
 var AdministratorsRegistryMock = artifacts.require('./mock/AdministratorsRegistryMock.sol');
 var ExpertsRegistryMock = artifacts.require('./mock/ExpertsRegistryMock.sol');
+var ScoringParametersProvider = artifacts.require('./ScoringParametersProvider.sol');
 
 contract('ExpertsRegistry', async function(accounts) {
+
+    var hrAreaId = 1;
+    var hrAreaMaxScore = 16;
+    var hrCriterionIds =     [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+    var hrCriterionWeights = [10, 10,  3,  4,  7,  3,  6,  5,  5,  2,  3];
+  
+    var analystAreaId = 2;
+    var analystAreaMaxScore = 23;
+    var analystCriterionIds =     [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
+    var analystCriterionWeights = [10, 10,  7,  5,  6,  2,  5,  2,  2,  5,  3, 10, 10,  7,  5,  3,  8,  5,  3,  5];
+  
+    var techAreaId = 3;
+    var techAreaMaxScore = 17;
+    var techCriterionIds =     [25, 26, 27, 28];
+    var techCriterionWeights = [ 5, 3, 10,  5];
+  
+    var lawyerAreaId = 4;
+    var lawyerAreaMaxScore = 27;
+    var lawyerCriterionIds =     [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+    var lawyerCriterionWeights = [10, 3, 1, 4, 4, 2, 8, 4, 8,  4,  7,  3,  3];
+  
+    var marketerAreaId = 5;
+    var marketerAreaMaxScore = 17;
+    var marketerCriterionIds =     [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68];
+    var marketerCriterionWeights = [ 3,  7,  9,  9, 10,  6, 10,  9,  6,  4,  4,  4,  4,  6,  4,  6,  8,  3,  5,  7];
+
     let owner;
     let admin;
     let expert1;
@@ -9,6 +36,52 @@ contract('ExpertsRegistry', async function(accounts) {
     let expert3;
 
     let expertsRegistry;
+    let scoringParametersProvider;
+    let administratorsRegistry;
+
+    async function initializeCriteria() {
+        const reward = +web3.toWei(0.1, 'ether').toString();
+
+        await scoringParametersProvider.initializeAreaParameters(
+            hrAreaId,
+            hrAreaMaxScore,
+            reward,
+            hrCriterionIds,
+            hrCriterionWeights,
+            {from: owner});
+
+        await scoringParametersProvider.initializeAreaParameters(
+            analystAreaId,
+            analystAreaMaxScore,
+            reward,
+            analystCriterionIds,
+            analystCriterionWeights,
+            {from: owner});
+
+        await scoringParametersProvider.initializeAreaParameters(
+            techAreaId,
+            techAreaMaxScore,
+            reward,
+            techCriterionIds,
+            techCriterionWeights,
+            {from: owner});
+
+        await scoringParametersProvider.initializeAreaParameters(
+            lawyerAreaId,
+            lawyerAreaMaxScore,
+            reward,
+            lawyerCriterionIds,
+            lawyerCriterionWeights,
+            {from: owner});
+
+        await scoringParametersProvider.initializeAreaParameters(
+            marketerAreaId,
+            marketerAreaMaxScore,
+            reward,
+            marketerCriterionIds,
+            marketerCriterionWeights,
+            {from: owner});
+    }
 
     beforeEach(async function(){
         owner = accounts[7];
@@ -17,16 +90,21 @@ contract('ExpertsRegistry', async function(accounts) {
         expert2 = accounts[4];
         expert3 = accounts[3];
 
-        let administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
-        administratorsRegistry.add(admin, {from: owner});
+        administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
+        await administratorsRegistry.add(admin, {from: owner});
+
+        scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});
 
         let areas = [1, 2, 3, 4, 5];
-        expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, areas, {from: owner});
+        expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, scoringParametersProvider.address, {from: owner});
+
+        console.log('INITIALIZING CRITERIA...');
+        await initializeCriteria();
     });
 
     it('application can be submitted by expert' , async function() {
         var areas = [1, 2];
-        await expertsRegistry.apply(areas, {from: expert1});
+        await expertsRegistry.apply(areas, web3.sha3("qqq1"), {from: expert1});
 
         var applications = await expertsRegistry.getApplications({from: owner});
         assert.equal(
@@ -53,10 +131,10 @@ contract('ExpertsRegistry', async function(accounts) {
 
     it('application can be approved by admin' , async function() {
         var expert2Areas = [1, 2, 3];
-        await expertsRegistry.apply(expert2Areas, {from: expert2});
+        await expertsRegistry.apply(expert2Areas, web3.sha3("qqq1"), {from: expert2});
 
         var expert1Areas = [1, 2, 3, 4];
-        await expertsRegistry.apply(expert1Areas, {from: expert1});
+        await expertsRegistry.apply(expert1Areas, web3.sha3("qqq1"),  {from: expert1});
 
         var approvedAreas = [2, 4];
         await expertsRegistry.approve(expert1, approvedAreas, {from: admin});
@@ -97,6 +175,54 @@ contract('ExpertsRegistry', async function(accounts) {
             applications[0].length,
             expert2Areas.length,
             'there are only expert 2 applications left');
+    });
+
+    it('application can be rejected by admin' , async function() {
+        var expert2Areas = [1, 2, 3];
+        await expertsRegistry.apply(expert2Areas, web3.sha3("qqq1"), {from: expert2});
+
+        var expert1Areas = [1, 2, 3, 4];
+        await expertsRegistry.apply(expert1Areas, web3.sha3("qqq1"), {from: expert1});
+
+        var approvedAreas = [2, 4];
+        await expertsRegistry.reject(expert1, {from: admin});
+
+        var area1ExpertsCount = await expertsRegistry.getExpertsCountInArea(1);
+        var area2ExpertsCount = await expertsRegistry.getExpertsCountInArea(2);
+        var area3ExpertsCount = await expertsRegistry.getExpertsCountInArea(3);
+        var area4ExpertsCount = await expertsRegistry.getExpertsCountInArea(4);
+
+        assert.equal(
+            area1ExpertsCount,
+            0,
+            'there should be no experts in area 1');
+        assert.equal(
+            area2ExpertsCount,
+            0,
+            'there should be one expert in area 2');
+        assert.equal(
+            area3ExpertsCount,
+            0,
+            'there should be no experts in area 3');
+        assert.equal(
+            area4ExpertsCount,
+            0,
+            'there should be one expert in area 4');
+
+        /*assert.equal(
+            await expertsRegistry.expertsByAreaMap(2, 0),
+            expert1,
+            'expert was not added to area 2 list at proper position');
+        assert.equal(
+            await expertsRegistry.expertsByAreaMap(4, 0),
+            expert1,
+            'expert was not added to area 2 list at proper position');
+
+        var applications = await expertsRegistry.getApplications({from: owner});
+        assert.equal(
+            applications[0].length,
+            expert2Areas.length,
+            'there are only expert 2 applications left');*/
     });
 
     it('expert can be added by admin' , async function() {
