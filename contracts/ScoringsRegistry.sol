@@ -120,6 +120,15 @@ contract ScoringsRegistry is Owned {
         return scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount;
     }
 
+    function getRequiredExpertsCounts(uint _projectId) external view returns (uint[] _counts, uint[] _areas) {
+        _areas = scoringsMap[_projectId].areas;
+        _counts = new uint[](_areas.length);
+
+        for (uint i = 0; i < _areas.length; i++) {
+            _counts[i] = scoringsMap[_projectId].areaScorings[_areas[i]].requiredExpertsCount;
+        }
+    }
+
     function incrementRequiredExpertsCount(uint _projectId, uint _area) external onlyScoringOffersManager {
         scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount++;
     }
