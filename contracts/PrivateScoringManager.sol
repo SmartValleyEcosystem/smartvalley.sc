@@ -24,7 +24,7 @@ contract PrivateScoringManager is ScoringManagerBase {
         require(_expertAreas.length == _experts.length, "_areas and _experts sizes don't match");
         require(scoringsRegistry.getScoringAddressById(_projectId) == 0, "scoring for specified project already exists");
 
-        uint[] memory areas = _expertAreas.distinct();
+        uint[] memory areas = scoringParametersProvider.getAreas();
         PrivateScoring scoring = new PrivateScoring(address(scoringParametersProvider));
         scoringsRegistry.addScoring(address(scoring), _projectId, areas, new uint[](areas.length));
 
