@@ -74,13 +74,16 @@ contract Scoring is Owned {
     }
 
     function getResults() external view returns(uint _score, uint[] _areas, uint[] _areaScores) {
-        _areas = getAreas();
-        _areaScores = new uint[](_areas.length);
+        uint[] memory areas = getAreas();
 
-        for (uint i = 0; i < _areas.length; i++) {
-            uint areaScore = getAreaScore(_areas[i]);
+        _areaScores = new uint[](areas.length);
+        _areas = new uint[](areas.length);
+
+        for (uint i = 0; i < areas.length; i++) {
+            uint areaScore = getAreaScore(areas[i]);
 
             _areaScores[i] = areaScore;
+            _areas[i] = areas[i];
             _score += areaScore;
         }
     }
@@ -93,7 +96,7 @@ contract Scoring is Owned {
         return scoringParametersProvider.getAreas();
     }
 
-    function getAreaScore(uint _area) private view returns(uint) {
+    function getAreaScore(uint _area) public view returns(uint) {
         if(estimates[_area].length == 0) {
             return 0;
         }
