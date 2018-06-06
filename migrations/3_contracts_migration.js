@@ -10,13 +10,13 @@ var ScoringParametersProvider = artifacts.require("./ScoringParametersProvider.s
 
 module.exports = function(deployer) {
   var hrAreaId = 1;
-  var hrAreaMaxScore = 16;
+  var hrAreaMaxScore = 23;
   var hrAreaReward = 1;
   var hrCriterionIds =     [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
   var hrCriterionWeights = [10, 10,  3,  4,  7,  3,  6,  5,  5,  2,  3];
 
   var analystAreaId = 2;
-  var analystAreaMaxScore = 23;
+  var analystAreaMaxScore = 27;
   var analystAreaReward = 1;
   var analystCriterionIds =     [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
   var analystCriterionWeights = [10, 10,  7,  5,  6,  2,  5,  2,  2,  5,  3, 10, 10,  7,  5,  3,  8,  5,  3,  5];
@@ -28,7 +28,7 @@ module.exports = function(deployer) {
   var techCriterionWeights = [5,  3, 10,  5];
 
   var lawyerAreaId = 4;
-  var lawyerAreaMaxScore = 27;
+  var lawyerAreaMaxScore = 16;
   var lawyerAreaReward = 1;
   var lawyerCriterionIds =     [1,  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
   var lawyerCriterionWeights = [10, 3, 1, 4, 4, 2, 8, 4, 8,  4,  7,  3,  3];
