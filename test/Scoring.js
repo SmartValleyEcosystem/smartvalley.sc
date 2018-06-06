@@ -30,7 +30,7 @@ contract('Scoring', async function (accounts) {
         await web3.eth.sendTransaction({from:accounts[8], to:scoring.address, value: web3.toWei(4, "ether")});      
     });
 
-     it('When estimates submitted, expert should be rewarded', async function () {
+    it('When estimates submitted, expert should be rewarded', async function () {
         var area = 3;
         var questions = [1, 2, 3];
         var scores = [10, 5, 0];

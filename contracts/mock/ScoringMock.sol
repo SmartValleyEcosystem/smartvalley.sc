@@ -1,8 +1,8 @@
-pragma solidity ^ 0.4.23;
+pragma solidity ^ 0.4.24;
 
 import "../Scoring.sol";
 
 contract ScoringMock is Scoring {
-    constructor(uint[] _areas, uint[] _areaExpertCounts, uint[] _areaEstimateRewardsWEI, uint[] _areaMaxScores) Scoring (0x0, _areas, _areaExpertCounts, _areaEstimateRewardsWEI, _areaMaxScores) public {
+    constructor(address _scoringParametersProviderAddress) Scoring (_scoringParametersProviderAddress) public {
     }
 }
