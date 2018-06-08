@@ -37,15 +37,4 @@ contract ScoringManager is ScoringManagerBase {
         }
         return cost;
     }
-
-    function migrateScorings(uint _startIndex, uint _count) external onlyOwner {
-        uint scoringsCount = scoringsRegistry.getScoringsCount();
-        require(_startIndex + _count <= scoringsCount);
-
-        for (uint i = _startIndex; i < _startIndex + _count; i++) {
-            uint projectId = scoringsRegistry.getProjectIdByIndex(i);
-            Scoring scoring = new Scoring(address(scoringParametersProvider));
-            scoringsRegistry.setScoringAddress(projectId, address(scoring));
-        }
-    }
 }
