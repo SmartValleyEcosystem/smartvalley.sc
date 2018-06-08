@@ -117,10 +117,6 @@ module.exports = function(deployer) {
     return scoringOffersManager.setScoringManager(scoringManagerInstance.address);
   })
   .then(() => {
-    return deployer.deploy(ArrayExtensions);
-  })
-  .then(() => {
-    deployer.link(ArrayExtensions, PrivateScoringManager);
     return deployer.deploy(PrivateScoringManager, scoringOffersManager.address, administratorsRegistry.address, scoringsRegistry.address, scoringParametersProvider.address);
   })
   .then((privateScoringManagerInstance) => {

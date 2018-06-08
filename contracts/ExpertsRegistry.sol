@@ -3,7 +3,6 @@ pragma solidity ^ 0.4.24;
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
 import "./ScoringParametersProvider.sol";
-import "./previous/PreviousExpertsRegistry.sol";
 
 contract ExpertsRegistry is Owned {
     struct Expert {
@@ -176,19 +175,6 @@ contract ExpertsRegistry is Owned {
 
         _experts = experts;
         _areas = areas;
-    }
-
-    function migrateFromHost(uint _area) external onlyOwner {
-        require(migrationHostAddress != 0);
-
-        PreviousExpertsRegistry migrationHost = PreviousExpertsRegistry(migrationHostAddress);
-
-        address[] memory experts = migrationHost.getExpertsInArea(_area);
-        for (uint i = 0; i < experts.length; i++) {
-            address expert = experts[i];
-            addInternal(expert, _area);
-            setApplicationHash(expert, migrationHost.getApplicationHash(expert));
-        }
     }
 
     function getExpertsCountInArea(uint _area) external view returns(uint) {
