@@ -131,5 +131,8 @@ module.exports = function(deployer) {
   })
   .then(() => {
     return scoringsRegistry.setScoringOffersManager(scoringOffersManager.address);
+  })
+  .then(() => {
+    return deployer.deploy(AllotmentEventsManager, administratorsRegistry.address);
   });
 }
