@@ -26,6 +26,18 @@ contract AllotmentEventsManager is Owned {
         allotmentEventsMap[_eventId] = address(allotmentEvent);
     }
 
+    function start(uint _eventId, address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) external onlyAdministrators {
+        require(allotmentEventsMap[_eventId] != 0);
+
+        AllotmentEvent(allotmentEventsMap[_eventId]).start(_tokenContractAddress, _startTimestamp, _finishTimestamp);
+    }
+
+    function edit(uint _eventId, address _tokenContractAddress, uint _finishTimestamp) external onlyAdministrators {
+        require(allotmentEventsMap[_eventId] != 0);
+
+        AllotmentEvent(allotmentEventsMap[_eventId]).edit(_tokenContractAddress, _finishTimestamp);
+    }
+
     function getAllotmentEventContractAddress(uint _eventId) external view returns(address) {
         return allotmentEventsMap[_eventId];
     }
