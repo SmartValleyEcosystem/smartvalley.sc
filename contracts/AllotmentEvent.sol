@@ -6,7 +6,7 @@ import "./TokenInterface.sol";
 contract AllotmentEvent is Owned {
 
     enum Status {
-        Created,
+        Published,
         InProgress,
         Finished
     }
@@ -18,11 +18,13 @@ contract AllotmentEvent is Owned {
     uint public finishTimestamp;
 
     constructor(uint _eventId) public {
+        require(_eventId != 0);
+
         eventId = _eventId;
     }
 
     function start(address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) external onlyOwner {
-        require(status == Status.Created);
+        require(status == Status.Published);
 
         status = Status.InProgress;
 
