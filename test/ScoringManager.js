@@ -112,9 +112,10 @@ contract('ScoringManager', async function(accounts) {
 
         administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
         scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});
+        arrayExtensions = await ArrayExtensions.new({from: owner});
+        await ExpertsRegistryMock.link(ArrayExtensions, {from: owner});
         expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, scoringParametersProvider.address, {from: owner});
         randomGenerator = await RandomGenerator.new({from: owner});
-        arrayExtensions = await ArrayExtensions.new({from: owner});
         scoringsRegistry = await ScoringsRegistry.new({from: owner});
         scoringOffersManager = await ScoringOffersManagerMock.new(3, 2, 2, expertsRegistry.address, administratorsRegistry.address, scoringsRegistry.address, {from: owner});
 
@@ -137,7 +138,7 @@ contract('ScoringManager', async function(accounts) {
         await scoringOffersManager.setPrivateScoringManager(privateScoringManager.address, {from: owner});
     });
 
-    it.only('expert should send estimates by area to scoring', async function() {
+    it('expert should send estimates by area to scoring', async function() {
         const projectId = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         console.log('STARTING SCORING...');
