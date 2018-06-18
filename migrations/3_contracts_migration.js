@@ -5,6 +5,7 @@ var ExpertsRegistry = artifacts.require("./ExpertsRegistry.sol");
 var ScoringsRegistry = artifacts.require("./ScoringsRegistry.sol");
 var ScoringOffersManager = artifacts.require("./ScoringOffersManager.sol");
 var RandomGenerator = artifacts.require("./RandomGenerator.sol");
+var ArrayExtensions = artifacts.require("./ArrayExtensions.sol");
 var ScoringParametersProvider = artifacts.require("./ScoringParametersProvider.sol");
 var AllotmentEventsManager = artifacts.require("./AllotmentEventsManager.sol");
 
@@ -94,6 +95,10 @@ module.exports = function(deployer) {
       marketerCriterionWeights);
   })
   .then(() => {
+    return deployer.deploy(ArrayExtensions);
+  })
+  .then(() => {
+    deployer.link(ArrayExtensions, ExpertsRegistry);
     return deployer.deploy(ExpertsRegistry, administratorsRegistry.address, scoringParametersProvider.address);
   })
   .then(expertsRegistryInstance => {
