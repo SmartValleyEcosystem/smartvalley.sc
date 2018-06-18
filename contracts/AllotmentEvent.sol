@@ -12,56 +12,76 @@ contract AllotmentEvent is Owned {
     }
 
     uint public eventId;
+    string public name;
+    uint public tokenDecimals;
+    string public tokenTicker;
     Status public status;
     TokenInterface public token;
     uint public startTimestamp;
     uint public finishTimestamp;
 
-    constructor(uint _eventId) public {
+    constructor(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) public {
         require(_eventId != 0);
 
         eventId = _eventId;
+        name = _name;
+        tokenDecimals = _tokenDecimals;
+        tokenTicker = _tokenTicker;
+        setTokenContractAddress(_tokenContractAddress);
+        setFinishTimestamp(_finishTimestamp);
     }
 
-    function start(address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) external onlyOwner {
+    function start() external onlyOwner {
         require(status == Status.Published);
+        require(token.balanceOf(address(this)) > 0);
 
         status = Status.InProgress;
 
+        setStartTimestamp(now);
+    }
+
+    function edit(string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) external onlyOwner {
+        name = _name;
+        tokenDecimals = _tokenDecimals;
+        tokenTicker = _tokenTicker;
+
         setTokenContractAddress(_tokenContractAddress);
-        setStartTimestamp(_startTimestamp);
         setFinishTimestamp(_finishTimestamp);
     }
 
-    function edit(address _tokenContractAddress, uint _finishTimestamp) external onlyOwner {
-        require(status == Status.InProgress);
-        require(_tokenContractAddress != 0 || _finishTimestamp != 0);
-
-        setTokenContractAddress(_tokenContractAddress);
-        setFinishTimestamp(_finishTimestamp);
+    function getInfo() external view returns(string _name, uint _status, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) {
+        _name = name;
+        _status = uint(status);
+        _tokenDecimals = tokenDecimals;
+        _tokenTicker = tokenTicker;
+        _tokenContractAddress = address(token);
+        _startTimestamp = startTimestamp;
+        _finishTimestamp = finishTimestamp;
     }
 
     function setStartTimestamp(uint _value) private {
-        if (_value != 0 && _value != startTimestamp) {
-            require(finishTimestamp == 0 || finishTimestamp > _value);
+        require(finishTimestamp == 0 || finishTimestamp > _value);
 
-            startTimestamp = _value;
-        }
+        startTimestamp = _value;
     }
 
     function setFinishTimestamp(uint _value) private {
-        if (_value != 0 && _value != finishTimestamp) {
-            require(_value > startTimestamp);
+        require(_value > startTimestamp);
 
-            finishTimestamp = _value;
-        }
+        finishTimestamp = _value;
     }
 
     function setTokenContractAddress(address _value) private {
-        if (_value != 0 && _value != address(token)) {
-            token = TokenInterface(_value);
+        require(status != Status.Finished);
+        require(_value != 0);
+        require(isContract(_value));
 
-            require(token.balanceOf(address(this)) > 0);
-        }
+        token = TokenInterface(_value);
+    }
+
+    function isContract(address _address) private view returns(bool) {
+        uint codeSize;
+        assembly { codeSize := extcodesize(_address) }
+        return codeSize > 0;
     }
 }

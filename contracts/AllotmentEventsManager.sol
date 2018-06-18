@@ -19,23 +19,23 @@ contract AllotmentEventsManager is Owned {
         _;
     }
 
-    function create(uint _eventId) external onlyAdministrators {
+    function create(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) external onlyAdministrators {
         require(allotmentEventsMap[_eventId] == 0);
 
-        AllotmentEvent allotmentEvent = new AllotmentEvent(_eventId);
+        AllotmentEvent allotmentEvent = new AllotmentEvent(_eventId, _name, _tokenDecimals, _tokenTicker, _tokenContractAddress, _finishTimestamp);
         allotmentEventsMap[_eventId] = address(allotmentEvent);
     }
 
-    function start(uint _eventId, address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) external onlyAdministrators {
+    function start(uint _eventId) external onlyAdministrators {
         require(allotmentEventsMap[_eventId] != 0);
 
-        AllotmentEvent(allotmentEventsMap[_eventId]).start(_tokenContractAddress, _startTimestamp, _finishTimestamp);
+        AllotmentEvent(allotmentEventsMap[_eventId]).start();
     }
 
-    function edit(uint _eventId, address _tokenContractAddress, uint _finishTimestamp) external onlyAdministrators {
+    function edit(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) external onlyAdministrators {
         require(allotmentEventsMap[_eventId] != 0);
 
-        AllotmentEvent(allotmentEventsMap[_eventId]).edit(_tokenContractAddress, _finishTimestamp);
+        AllotmentEvent(allotmentEventsMap[_eventId]).edit(_name, _tokenDecimals, _tokenTicker, _tokenContractAddress, _finishTimestamp);
     }
 
     function getAllotmentEventContractAddress(uint _eventId) external view returns(address) {
