@@ -220,6 +220,35 @@ contract ExpertsRegistry is Owned {
         return expertsMap[_expert].areas[_area].approved;
     }
 
+    function getExpertAreas(address _expert) external view returns(uint[] _areas) {
+        if (!expertsMap[_expert].exists) {
+            return new uint[](0);
+        }
+
+        uint count = getExpertAreasCount(_expert);
+        _areas = new uint[](count);
+
+        uint resultIndex = 0;
+        uint[] memory areas = scoringParametersProvider.getAreas();
+        for (uint i = 0; i < areas.length; i++) {
+            if (expertsMap[_expert].areas[areas[i]].approved) {
+                _areas[resultIndex] = areas[i];
+                resultIndex++;
+            }
+        }
+    }
+
+    function getExpertAreasCount(address _expert) private view returns(uint) {
+        uint result = 0;
+        uint[] memory areas = scoringParametersProvider.getAreas();
+        for (uint i = 0; i < areas.length; i++) {
+            if (expertsMap[_expert].areas[areas[i]].approved) {
+                result++;
+            }
+        }
+        return result;
+    }
+
     function setApplicationHash(address _expert, bytes32 _hash) private {
         expertsMap[_expert].applicationHash = _hash;
     }
