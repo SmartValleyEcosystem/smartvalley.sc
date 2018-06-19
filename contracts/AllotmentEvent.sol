@@ -66,7 +66,7 @@ contract AllotmentEvent is Owned {
     }
 
     function setFinishTimestamp(uint _value) private {
-        require(_value > startTimestamp);
+        require(_value == 0 || _value > startTimestamp);
 
         finishTimestamp = _value;
     }
