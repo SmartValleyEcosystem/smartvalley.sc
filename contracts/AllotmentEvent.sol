@@ -2,6 +2,7 @@ pragma solidity ^ 0.4.24;
 
 import "./Owned.sol";
 import "./TokenInterface.sol";
+import "./AllotmentEventsManager.sol";
 
 contract AllotmentEvent is Owned {
 
@@ -17,16 +18,18 @@ contract AllotmentEvent is Owned {
     string public tokenTicker;
     Status public status;
     TokenInterface public token;
+    AllotmentEventsManager public manager;
     uint public startTimestamp;
     uint public finishTimestamp;
 
-    constructor(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) public {
+    constructor(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp, address _managerAddress) public {
         require(_eventId != 0);
 
         eventId = _eventId;
         name = _name;
         tokenDecimals = _tokenDecimals;
         tokenTicker = _tokenTicker;
+        manager = AllotmentEventsManager(_managerAddress);
         setTokenContractAddress(_tokenContractAddress);
         setFinishTimestamp(_finishTimestamp);
     }
@@ -83,5 +86,9 @@ contract AllotmentEvent is Owned {
         uint codeSize;
         assembly { codeSize := extcodesize(_address) }
         return codeSize > 0;
+    }
+
+    function getReturnAddress() private view returns(address) {
+        return manager.returnAddress();
     }
 }
