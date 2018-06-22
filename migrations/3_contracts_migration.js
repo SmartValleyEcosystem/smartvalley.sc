@@ -159,6 +159,6 @@ module.exports = function(deployer) {
     return scoringsRegistry.setScoringOffersManager(scoringOffersManager.address);
   })
   .then(() => {
-    return deployer.deploy(AllotmentEventsManager, administratorsRegistry.address, allotmentTokensFreezingDuration);
+    return deployer.deploy(AllotmentEventsManager, administratorsRegistry.address, allotmentTokensFreezingDuration, token.address);
   });
 }

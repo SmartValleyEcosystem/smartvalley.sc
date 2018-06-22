@@ -43,8 +43,6 @@ contract('ScoringManager', async function(accounts) {
     let administratorsRegistry;
     let expertsRegistry;
     let scoringsRegistry;
-    let randomGenerator;
-    let arrayExtensions;
     let scoringOffersManager;
     let scoringParametersProvider;
 

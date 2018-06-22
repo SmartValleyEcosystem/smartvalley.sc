@@ -11,14 +11,20 @@ contract AllotmentEventsManager is Owned {
     mapping(uint => address) public allotmentEventsMap;
     uint public freezingDuration;
     address public returnAddress;
+    address public smartValleyTokenAddress;
 
-    constructor(address _administratorsRegistryAddress, uint _freezingDuration) public {
-        setFreezingDuration(_freezingDuration);
+    constructor(
+        address _administratorsRegistryAddress,
+        uint _freezingDurationDays,
+        address _smartValleyTokenAddress) public {
+
+        setFreezingDuration(_freezingDurationDays);
         setAdministratorsRegistry(_administratorsRegistryAddress);
+        setSmartValleyTokenAddress(_smartValleyTokenAddress);
     }
 
     modifier onlyAdministrators {
-        require(administratorsRegistry.isAdministrator(msg.sender));
+        require(msg.sender == owner || administratorsRegistry.isAdministrator(msg.sender));
         _;
     }
 
@@ -68,17 +74,26 @@ contract AllotmentEventsManager is Owned {
         return allotmentEventsMap[_eventId];
     }
 
+    function getFreezingDurationDays() external view returns(uint) {
+        return freezingDuration / 1 days;
+    }
+
     function setAdministratorsRegistry(address _address) public onlyOwner {
         require(_address != 0);
         administratorsRegistry = AdministratorsRegistry(_address);
     }
 
-    function setFreezingDuration(uint _value) public onlyOwner {
-        require(_value != 0);
-        freezingDuration = _value;
+    function setSmartValleyTokenAddress(address _address) public onlyOwner {
+        require(_address != 0);
+        smartValleyTokenAddress = _address;
     }
 
-    function setReturnAddress(address _value) public onlyOwner {
+    function setFreezingDuration(uint _days) public onlyAdministrators {
+        require(_days != 0);
+        freezingDuration = _days * 1 days;
+    }
+
+    function setReturnAddress(address _value) public onlyAdministrators {
         require(_value != 0);
         returnAddress = _value;
     }
