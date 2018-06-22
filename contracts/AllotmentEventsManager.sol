@@ -8,10 +8,12 @@ contract AllotmentEventsManager is Owned {
 
     AdministratorsRegistry public administratorsRegistry;
 
-    mapping(uint => address) allotmentEventsMap;
+    mapping(uint => address) public allotmentEventsMap;
+    uint public freezingDuration;
     address public returnAddress;
 
-    constructor(address _administratorsRegistryAddress) public {
+    constructor(address _administratorsRegistryAddress, uint _freezingDuration) public {
+        setFreezingDuration(_freezingDuration);
         setAdministratorsRegistry(_administratorsRegistryAddress);
     }
 
@@ -20,10 +22,26 @@ contract AllotmentEventsManager is Owned {
         _;
     }
 
-    function create(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) external onlyAdministrators {
+    function create(
+        uint _eventId,
+        string _name,
+        uint _tokenDecimals,
+        string _tokenTicker,
+        address _tokenContractAddress,
+        uint _finishTimestamp) external onlyAdministrators {
+
         require(allotmentEventsMap[_eventId] == 0);
 
-        AllotmentEvent allotmentEvent = new AllotmentEvent(_eventId, _name, _tokenDecimals, _tokenTicker, _tokenContractAddress, _finishTimestamp, address(this));
+        AllotmentEvent allotmentEvent = new AllotmentEvent(
+            _eventId,
+            _name,
+            _tokenDecimals,
+            _tokenTicker,
+            _tokenContractAddress,
+            _finishTimestamp,
+            freezingDuration,
+            address(this));
+
         allotmentEventsMap[_eventId] = address(allotmentEvent);
     }
 
@@ -33,7 +51,14 @@ contract AllotmentEventsManager is Owned {
         AllotmentEvent(allotmentEventsMap[_eventId]).start();
     }
 
-    function edit(uint _eventId, string _name, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _finishTimestamp) external onlyAdministrators {
+    function edit(
+        uint _eventId,
+        string _name,
+        uint _tokenDecimals,
+        string _tokenTicker,
+        address _tokenContractAddress,
+        uint _finishTimestamp) external onlyAdministrators {
+
         require(allotmentEventsMap[_eventId] != 0);
 
         AllotmentEvent(allotmentEventsMap[_eventId]).edit(_name, _tokenDecimals, _tokenTicker, _tokenContractAddress, _finishTimestamp);
@@ -46,6 +71,11 @@ contract AllotmentEventsManager is Owned {
     function setAdministratorsRegistry(address _address) public onlyOwner {
         require(_address != 0);
         administratorsRegistry = AdministratorsRegistry(_address);
+    }
+
+    function setFreezingDuration(uint _value) public onlyOwner {
+        require(_value != 0);
+        freezingDuration = _value;
     }
 
     function setReturnAddress(address _value) public onlyOwner {

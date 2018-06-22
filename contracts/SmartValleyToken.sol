@@ -1,28 +1,22 @@
 pragma solidity ^ 0.4.24;
 
-import "./StandardToken.sol";
+import "./FreezableToken.sol";
 import "./TokenReceiver.sol";
-import "./BalanceFreezer.sol";
 import "./MigrationAgent.sol";
 
-contract SmartValleyToken is StandardToken, MigrationAgent {
+contract SmartValleyToken is FreezableToken, MigrationAgent {
 
     address public minter;
     address public burner;
-    address public balanceFreezer;
+
+    string public name = "Smart Valley";
+    string public symbol = "SVT";
+    uint8 public decimals = 18;
 
     mapping(address => bool) public migratedAddresses;
 
     bool public isTransferAllowed = false;
     bool public isMintingAllowed = true;
-
-    constructor(address _freezer) public {
-        symbol = "SVT";
-        name = "Smart Valley";
-        decimals = 18;
-
-        setBalanceFreezer(_freezer);
-    }
 
     modifier onlyMinter {
         require(msg.sender == minter);
@@ -52,10 +46,6 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         burner = _burner;
     }
 
-    function setBalanceFreezer(address _balanceFreezer) public onlyOwner {
-        balanceFreezer = _balanceFreezer;
-    }
-
     function transfer(address _to, uint _value, bytes _data, string _customFallback) public whenTransferAllowed returns(bool) {
         super.transfer(_to, _value, _data, _customFallback);
     }
@@ -68,17 +58,17 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         super.transfer(_to, _value);
     }
 
-    function mintTokens(address _to, uint256 _tokensAmountWithDecimals) public onlyMinter {
-        require(_tokensAmountWithDecimals > 0);
+    function mint(address _to, uint _amount) public onlyMinter {
+        require(_amount > 0);
 
-        balances[_to] = balances[_to].add(_tokensAmountWithDecimals);
-        totalSupply = totalSupply.add(_tokensAmountWithDecimals);
+        balances[_to] = balances[_to].add(_amount);
+        totalSupply = totalSupply.add(_amount);
 
-        emit Transfer(this, _to, _tokensAmountWithDecimals, new bytes(0));
+        emit Transfer(address(this), _to, _amount, new bytes(0));
     }
 
     function getAvailableBalance(address _from) public view returns(uint) {
-        uint frozenBalance = BalanceFreezer(balanceFreezer).getFrozenAmount(_from);
+        uint frozenBalance = getFrozenAmount(_from);
 
         if (balanceOf(_from) <= frozenBalance) {
             return 0;
@@ -87,14 +77,14 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         return balanceOf(_from) - frozenBalance;
     }
 
-    function burnTokens(address _from, uint _tokensAmountWithDecimals) public onlyBurner {
-        require(_tokensAmountWithDecimals > 0);
-        require(balances[_from] >= _tokensAmountWithDecimals);
+    function burn(address _from, uint _amount) public onlyBurner {
+        require(_amount > 0);
+        require(balances[_from] >= _amount);
 
-        balances[_from] = balances[_from].sub(_tokensAmountWithDecimals);
-        totalSupply = totalSupply.sub(_tokensAmountWithDecimals);
+        balances[_from] = balances[_from].sub(_amount);
+        totalSupply = totalSupply.sub(_amount);
 
-        emit Transfer(_from, 0x0, _tokensAmountWithDecimals, new bytes(0));
+        emit Transfer(_from, 0x0, _amount, new bytes(0));
     }
 
     function blockMinting() onlyOwner public {
@@ -104,10 +94,10 @@ contract SmartValleyToken is StandardToken, MigrationAgent {
         isMintingAllowed = false;
     }
 
-    function migrateFrom(address _tokenHolder, uint256 _value) public onlyMinter {
+    function migrateFrom(address _tokenHolder, uint _value) public onlyMinter {
         require(migratedAddresses[_tokenHolder] == false);
 
-        mintTokens(_tokenHolder, _value);
+        mint(_tokenHolder, _value);
         migratedAddresses[_tokenHolder] = true;
     }
 

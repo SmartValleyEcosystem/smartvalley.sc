@@ -8,6 +8,10 @@ var RandomGenerator = artifacts.require("./RandomGenerator.sol");
 var ArrayExtensions = artifacts.require("./ArrayExtensions.sol");
 var ScoringParametersProvider = artifacts.require("./ScoringParametersProvider.sol");
 var AllotmentEventsManager = artifacts.require("./AllotmentEventsManager.sol");
+var AllotmentEvent = artifacts.require("./AllotmentEvent.sol");
+var SmartValleyToken = artifacts.require("./SmartValleyToken.sol");
+var SafeMath = artifacts.require("./SafeMath.sol");
+var ContractExtensions = artifacts.require("./ContractExtensions.sol");
 
 module.exports = function(deployer) {
   var hrAreaId = 1;
@@ -40,6 +44,8 @@ module.exports = function(deployer) {
   var marketerCriterionIds =     [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68];
   var marketerCriterionWeights = [3,  7,  9,  9, 10,  6, 10,  9,  6,  4,  4,  4,  4,  6,  4,  6,  8,  3,  5,  7];
 
+  var allotmentTokensFreezingDuration = 30;
+
   let scoringOffersManager;
   let expertsRegistry;
   let scoringsRegistry;
@@ -47,8 +53,27 @@ module.exports = function(deployer) {
   let scoringParametersProvider;
   let scoringManager;
   let privateScoringManager;
+  let token;
 
-  deployer.deploy(AdministratorsRegistry)
+  deployer.deploy(RandomGenerator)
+  .then(() => {
+    deployer.link(RandomGenerator, ScoringOffersManager);
+    return deployer.deploy(ContractExtensions);
+  })
+  .then(() => {
+    deployer.link(ContractExtensions, SmartValleyToken);
+    deployer.link(ContractExtensions, AllotmentEvent);
+    return deployer.deploy(SafeMath);
+  })
+  .then(() => {
+    deployer.link(SafeMath, SmartValleyToken);
+    deployer.link(SafeMath, AllotmentEvent);
+    return deployer.deploy(SmartValleyToken);
+  })
+  .then(tokenInstance => {
+    token = tokenInstance;
+    return deployer.deploy(AdministratorsRegistry);
+  })
   .then(administratorsRegistryInstance => {
     administratorsRegistry = administratorsRegistryInstance;
     return deployer.deploy(ScoringParametersProvider, administratorsRegistry.address);
@@ -107,10 +132,6 @@ module.exports = function(deployer) {
   })
   .then(scoringsRegistryInstance => {
     scoringsRegistry = scoringsRegistryInstance;
-    return deployer.deploy(RandomGenerator);
-  })
-  .then(() => {
-    deployer.link(RandomGenerator, ScoringOffersManager);
     return deployer.deploy(ScoringOffersManager, 3, 2, 2, expertsRegistry.address, administratorsRegistry.address, scoringsRegistry.address);
   })
   .then(scoringOffersManagerInstance => {
@@ -138,6 +159,6 @@ module.exports = function(deployer) {
     return scoringsRegistry.setScoringOffersManager(scoringOffersManager.address);
   })
   .then(() => {
-    return deployer.deploy(AllotmentEventsManager, administratorsRegistry.address);
+    return deployer.deploy(AllotmentEventsManager, administratorsRegistry.address, allotmentTokensFreezingDuration);
   });
 }

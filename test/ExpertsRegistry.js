@@ -95,7 +95,7 @@ contract('ExpertsRegistry', async function(accounts) {
         await administratorsRegistry.add(admin, {from: owner});
 
         scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});
-        var arrayExtensions = await ArrayExtensions.new({from: owner});
+        await ArrayExtensions.new({from: owner});
         await ExpertsRegistryMock.link(ArrayExtensions, {from: owner});
 
         expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, scoringParametersProvider.address, {from: owner});
