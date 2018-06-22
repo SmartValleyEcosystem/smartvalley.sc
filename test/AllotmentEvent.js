@@ -1,4 +1,4 @@
-var AdministratorsRegistryMock = artifacts.require('./mock/AdministratorsRegistryMock.sol');
+var AdministratorsRegistry = artifacts.require('./AdministratorsRegistry.sol');
 var SafeMath = artifacts.require('./SafeMath.sol');
 var ContractExtensions = artifacts.require('./ContractExtensions.sol');
 var AllotmentEventsManager = artifacts.require('./AllotmentEventsManager.sol');
@@ -31,7 +31,7 @@ contract('AllotmentEvent', async function(accounts) {
         participant1 = accounts[7];
         participant2 = accounts[6];
 
-        administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
+        administratorsRegistry = await AdministratorsRegistry.new({from: owner});
         await administratorsRegistry.add(admin, {from: owner});
 
         await SafeMath.new({from: owner});

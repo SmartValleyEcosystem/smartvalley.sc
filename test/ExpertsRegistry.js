@@ -1,4 +1,4 @@
-var AdministratorsRegistryMock = artifacts.require('./mock/AdministratorsRegistryMock.sol');
+var AdministratorsRegistry = artifacts.require('./AdministratorsRegistry.sol');
 var ExpertsRegistryMock = artifacts.require('./mock/ExpertsRegistryMock.sol');
 var ArrayExtensions = artifacts.require('./ArrayExtensions.sol');
 var ScoringParametersProvider = artifacts.require('./ScoringParametersProvider.sol');
@@ -91,7 +91,7 @@ contract('ExpertsRegistry', async function(accounts) {
         expert2 = accounts[4];
         expert3 = accounts[3];
 
-        administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
+        administratorsRegistry = await AdministratorsRegistry.new({from: owner});
         await administratorsRegistry.add(admin, {from: owner});
 
         scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});

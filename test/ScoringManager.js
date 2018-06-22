@@ -1,12 +1,12 @@
-var ScoringManagerMock = artifacts.require('./mock/ScoringManagerMock.sol');
+var ScoringManager = artifacts.require('./ScoringManager.sol');
 var PrivateScoringManager = artifacts.require('./PrivateScoringManager.sol');
 var PrivateScoring = artifacts.require('./PrivateScoring.sol');
-var ScoringMock = artifacts.require('./mock/ScoringMock.sol');
-var AdministratorsRegistryMock = artifacts.require('./mock/AdministratorsRegistryMock.sol');
+var Scoring = artifacts.require('./Scoring.sol');
+var AdministratorsRegistry = artifacts.require('./mock/AdministratorsRegistry.sol');
 var ExpertsRegistryMock = artifacts.require('./mock/ExpertsRegistryMock.sol');
 var ScoringsRegistry = artifacts.require('./ScoringsRegistry.sol');
 var ScoringParametersProvider = artifacts.require('./ScoringParametersProvider.sol');
-var ScoringOffersManagerMock = artifacts.require('./mock/ScoringOffersManagerMock.sol');
+var ScoringOffersManager = artifacts.require('./ScoringOffersManager.sol');
 var RandomGenerator = artifacts.require('./RandomGenerator.sol');
 var ArrayExtensions = artifacts.require('./ArrayExtensions.sol');
 
@@ -108,16 +108,16 @@ contract('ScoringManager', async function(accounts) {
     beforeEach(async function(){
         owner = accounts[8];
 
-        administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
+        administratorsRegistry = await AdministratorsRegistry.new({from: owner});
         scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});
         arrayExtensions = await ArrayExtensions.new({from: owner});
         await ExpertsRegistryMock.link(ArrayExtensions, {from: owner});
         expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, scoringParametersProvider.address, {from: owner});
         randomGenerator = await RandomGenerator.new({from: owner});
         scoringsRegistry = await ScoringsRegistry.new({from: owner});
-        scoringOffersManager = await ScoringOffersManagerMock.new(3, 2, 2, expertsRegistry.address, administratorsRegistry.address, scoringsRegistry.address, {from: owner});
+        scoringOffersManager = await ScoringOffersManager.new(3, 2, 2, expertsRegistry.address, administratorsRegistry.address, scoringsRegistry.address, {from: owner});
 
-        scoringManager = await ScoringManagerMock.new(scoringOffersManager.address, administratorsRegistry.address, scoringsRegistry.address, scoringParametersProvider.address, {from: owner});
+        scoringManager = await ScoringManager.new(scoringOffersManager.address, administratorsRegistry.address, scoringsRegistry.address, scoringParametersProvider.address, {from: owner});
         privateScoringManager = await PrivateScoringManager.new(scoringOffersManager.address, administratorsRegistry.address, scoringsRegistry.address, scoringParametersProvider.address, {from: owner});
 
         await scoringsRegistry.setScoringManager(scoringManager.address, {from: owner});
@@ -136,7 +136,7 @@ contract('ScoringManager', async function(accounts) {
         await scoringOffersManager.setPrivateScoringManager(privateScoringManager.address, {from: owner});
     });
 
-    it('expert should send estimates by area to scoring', async function() {
+    it.only('expert should send estimates by area to scoring', async function() {
         const projectId = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         console.log('STARTING SCORING...');

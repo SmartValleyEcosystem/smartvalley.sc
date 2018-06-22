@@ -1,4 +1,4 @@
-var ScoringMock = artifacts.require('./mock/ScoringMock.sol');
+var Scoring = artifacts.require('./Scoring.sol');
 
 contract('Scoring', async function (accounts) {
     let scoring;  
@@ -15,7 +15,7 @@ contract('Scoring', async function (accounts) {
         cost = null;
         for (i = 0; i < areas.length; i++) {
             cost += areaExpertCounts[i] * areaEstimateRewards[i];
-        }        
+        }
         return web3.toWei(cost);
     }
 
@@ -25,9 +25,9 @@ contract('Scoring', async function (accounts) {
             rewardsWei.push(web3.toWei(areaEstimateRewards[i]))
         } 
         owner = accounts[9];
-        scoringManager = accounts[8];            
-        scoring = await ScoringMock.new(areas, areaExpertCounts, rewardsWei,{ from: scoringManager });
-        await web3.eth.sendTransaction({from:accounts[8], to:scoring.address, value: web3.toWei(4, "ether")});      
+        scoringManager = accounts[8];
+        scoring = await Scoring.new(areas, areaExpertCounts, rewardsWei,{ from: scoringManager });
+        await web3.eth.sendTransaction({from:accounts[8], to:scoring.address, value: web3.toWei(4, "ether")});
     });
 
     it('When estimates submitted, expert should be rewarded', async function () {
@@ -36,13 +36,13 @@ contract('Scoring', async function (accounts) {
         var scores = [10, 5, 0];
         var commentHashes = [web3.sha3("qqq1"), web3.sha3("qqq2"), web3.sha3("qqq3")];
 
-        var initialBalance = await web3.eth.getBalance(accounts[0]);        
+        var initialBalance = await web3.eth.getBalance(accounts[0]);
         await scoring.submitEstimates(accounts[0], area, questions, scores, commentHashes, {from: scoringManager});
-        var balance = await web3.eth.getBalance(accounts[0]);          
+        var balance = await web3.eth.getBalance(accounts[0]);
         assert.notEqual(+initialBalance, +balance);
     });
 
-    it('Should get correct scoring cost', async function () {            
+    it('Should get correct scoring cost', async function () {
         var contractCost = await scoring.getScoringCost();
         var cost = getScoringCost();
         assert.equal(+contractCost, +cost, +contractCost +' should be equal '+ +cost);
