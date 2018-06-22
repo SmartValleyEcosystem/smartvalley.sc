@@ -28,8 +28,10 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
     uint public startTimestamp;
     uint public finishTimestamp;
     uint public freezingDuration;
+    uint public tokensToDistribute;
 
     mapping(address => uint) public participantBids;
+    mapping(address => bool) public collectedSharesMap;
     address[] public participants;
 
     constructor(
@@ -52,6 +54,11 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         manager = AllotmentEventsManager(_managerAddress);
         setTokenContractAddress(_tokenContractAddress);
         setFinishTimestamp(_finishTimestamp);
+    }
+
+    modifier onlySmartValleyToken {
+        require(msg.sender == manager.smartValleyTokenAddress());
+        _;
     }
 
     function start() external onlyOwner {
@@ -78,6 +85,31 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         setFinishTimestamp(_finishTimestamp);
     }
 
+    function frozen(address _sender, uint256 _amount, bytes _data) external onlySmartValleyToken {
+        registerBid(_sender, _amount);
+    }
+
+    function getFreezingDuration() external view returns(uint) {
+        return freezingDuration;
+    }
+
+    function collectTokens() external {
+        require(finishTimestamp > 0 && now > finishTimestamp);
+        require(participantBids[msg.sender] > 0);
+        require(!collectedSharesMap[msg.sender]);
+
+        if (status != Status.Finished) {
+            status = Status.Finished;
+            tokensToDistribute = token.balanceOf(address(this));
+        }
+
+        uint totalBidsAmount = getTotalBidsAmount();
+        uint share = getTokensToDistribute().multiply(participantBids[msg.sender]) / totalBidsAmount;
+
+        token.transfer(msg.sender, share);
+        collectedSharesMap[msg.sender] = true;
+    }
+
     function getInfo() external view returns(string _name, uint _status, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) {
         _name = name;
         _status = uint(status);
@@ -88,30 +120,32 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         _finishTimestamp = finishTimestamp;
     }
 
-    function getResults() external view returns(uint _totalTokensToDistribute, uint _totalBidsAmount, address[] _participants, uint[] _participantBids, uint[] _participantShares) {
+    function getResults() external view returns(uint _totalTokensToDistribute, uint _totalBidsAmount, address[] _participants, uint[] _participantBids, uint[] _participantShares, bool[] _collectedShares) {
         require(status == Status.InProgress || status == Status.Finished);
 
-        _totalTokensToDistribute = token.balanceOf(address(this));
+        _totalTokensToDistribute = getTokensToDistribute();
+        _totalBidsAmount = getTotalBidsAmount();
         _participants = participants;
         _participantBids = new uint[](participants.length);
         _participantShares = new uint[](participants.length);
+        _collectedShares = new bool[](participants.length);
 
         for (uint i = 0; i < participants.length; i++) {
             _participantBids[i] = participantBids[participants[i]];
-            _totalBidsAmount = _totalBidsAmount.add(_participantBids[i]);
-        }
-
-        for (uint j = 0; j < participants.length; j++) {
-            _participantShares[j] = _totalTokensToDistribute.multiply(_participantBids[j]) / _totalBidsAmount;
+            _collectedShares[i] = collectedSharesMap[participants[i]];
+            _participantShares[i] = _totalTokensToDistribute.multiply(_participantBids[i]) / _totalBidsAmount;
         }
     }
 
-    function frozen(address _sender, uint256 _amount, bytes _data) external {
-        registerBid(_sender, _amount);
+    function getTotalBidsAmount() private view returns(uint _result) {
+        for (uint i = 0; i < participants.length; i++) {
+            uint bid = participantBids[participants[i]];
+            _result = _result.add(bid);
+        }
     }
 
-    function getFreezingDuration() external returns(uint) {
-        return freezingDuration;
+    function getTokensToDistribute() private view returns(uint) {
+        return tokensToDistribute == 0 ? token.balanceOf(address(this)) : tokensToDistribute;
     }
 
     function registerBid(address _account, uint _amount) private {
@@ -126,12 +160,14 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
 
     function setStartTimestamp(uint _value) private {
         require(finishTimestamp > _value);
+        require(finishTimestamp < _value + freezingDuration);
 
         startTimestamp = _value;
     }
 
     function setFinishTimestamp(uint _value) private {
         require(_value == 0 || _value > startTimestamp);
+        require(startTimestamp == 0 || _value < startTimestamp + freezingDuration);
 
         finishTimestamp = _value;
     }

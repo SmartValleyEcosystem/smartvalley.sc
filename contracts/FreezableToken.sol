@@ -26,7 +26,7 @@ contract FreezableToken is StandardToken {
         uint duration = target.getFreezingDuration();
         require(duration > 0);
 
-        Freezing memory freezing = Freezing(_amount, now + duration * 1 days, _target);
+        Freezing memory freezing = Freezing(_amount, now + duration, _target);
         freezingsMap[msg.sender].push(freezing);
 
         target.frozen(msg.sender, _amount, _data);
