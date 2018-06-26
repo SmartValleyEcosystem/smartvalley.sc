@@ -1,9 +1,9 @@
 pragma solidity ^ 0.4.24;
 
 library ArrayExtensions {
-    function indexOf(uint[] _collection, uint _value) external pure returns(uint) {
-        for (uint i = 0; i < _collection.length; i++) {
-            if (_collection[i] == _value) {
+    function indexOf(uint[] _array, uint _item) external pure returns(uint) {
+        for (uint i = 0; i < _array.length; i++) {
+            if (_array[i] == _item) {
                 return i;
             }
         }
@@ -43,12 +43,27 @@ library ArrayExtensions {
         return result;
     }
 
-    function contains(uint[] _array, uint _value) external pure returns(bool) {
+    function contains(uint[] _array, uint _item) external pure returns(bool) {
         for (uint i = 0; i < _array.length; i++) {
-            if (_array[i] == _value) {
+            if (_array[i] == _item) {
                 return true;
             }
         }
         return false;
+    }
+
+    function remove(address[] storage _array, address _item) external {
+        for (uint i = 0; i < _array.length; i++) {
+            if (_array[i] == _item) {
+                delete _array[i];
+
+                if(i != _array.length - 1) {
+                    _array[i] = _array[_array.length - 1];
+                }
+
+                _array.length--;
+                return;
+            }
+        }
     }
 }

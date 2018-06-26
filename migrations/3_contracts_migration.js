@@ -55,7 +55,13 @@ module.exports = function(deployer) {
   let privateScoringManager;
   let token;
 
-  deployer.deploy(RandomGenerator)
+  deployer.deploy(ArrayExtensions)
+  .then(() => {
+    deployer.link(ArrayExtensions, AllotmentEventsManager);
+    deployer.link(ArrayExtensions, ExpertsRegistry);
+    deployer.link(ArrayExtensions, ScoringsRegistry);
+    return deployer.deploy(RandomGenerator);
+  })
   .then(() => {
     deployer.link(RandomGenerator, ScoringOffersManager);
     return deployer.deploy(ContractExtensions);
@@ -63,6 +69,7 @@ module.exports = function(deployer) {
   .then(() => {
     deployer.link(ContractExtensions, SmartValleyToken);
     deployer.link(ContractExtensions, AllotmentEvent);
+    deployer.link(ContractExtensions, AllotmentEventsManager);
     return deployer.deploy(SafeMath);
   })
   .then(() => {
@@ -120,10 +127,6 @@ module.exports = function(deployer) {
       marketerCriterionWeights);
   })
   .then(() => {
-    return deployer.deploy(ArrayExtensions);
-  })
-  .then(() => {
-    deployer.link(ArrayExtensions, ExpertsRegistry);
     return deployer.deploy(ExpertsRegistry, administratorsRegistry.address, scoringParametersProvider.address);
   })
   .then(expertsRegistryInstance => {

@@ -3,15 +3,20 @@ pragma solidity ^ 0.4.24;
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
 import "./AllotmentEvent.sol";
+import "./ContractExtensions.sol";
+import "./ArrayExtensions.sol";
 
 contract AllotmentEventsManager is Owned {
 
-    AdministratorsRegistry public administratorsRegistry;
+    using ContractExtensions for address;
+    using ArrayExtensions for address[];
 
     mapping(uint => address) public allotmentEventsMap;
+    address[] public allotmentEvents;
     uint public freezingDuration;
     address public returnAddress;
     address public smartValleyTokenAddress;
+    AdministratorsRegistry public administratorsRegistry;
 
     constructor(
         address _administratorsRegistryAddress,
@@ -49,6 +54,7 @@ contract AllotmentEventsManager is Owned {
             address(this));
 
         allotmentEventsMap[_eventId] = address(allotmentEvent);
+        allotmentEvents.push(address(allotmentEvent));
     }
 
     function start(uint _eventId) external onlyAdministrators {
@@ -68,6 +74,21 @@ contract AllotmentEventsManager is Owned {
         require(allotmentEventsMap[_eventId] != 0);
 
         AllotmentEvent(allotmentEventsMap[_eventId]).edit(_name, _tokenDecimals, _tokenTicker, _tokenContractAddress, _finishTimestamp);
+    }
+
+    function returnBids(uint _eventId) external onlyAdministrators {
+        require(allotmentEventsMap[_eventId] != 0);
+
+        AllotmentEvent(allotmentEventsMap[_eventId]).returnBids();
+    }
+
+    function remove(uint _eventId) external onlyAdministrators {
+        require(allotmentEventsMap[_eventId] != 0);
+
+        AllotmentEvent(allotmentEventsMap[_eventId]).destruct();
+
+        allotmentEvents.remove(allotmentEventsMap[_eventId]);
+        delete allotmentEventsMap[_eventId];
     }
 
     function getAllotmentEventContractAddress(uint _eventId) external view returns(address) {

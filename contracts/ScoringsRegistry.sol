@@ -2,8 +2,11 @@ pragma solidity ^ 0.4.24;
 
 import "./Owned.sol";
 import "./Scoring.sol";
+import "./ArrayExtensions.sol";
 
 contract ScoringsRegistry is Owned {
+
+    using ArrayExtensions for address[];
 
     struct AreaScoring {
         uint requiredExpertsCount;
@@ -69,20 +72,7 @@ contract ScoringsRegistry is Owned {
 
     function removeOffer(uint _projectId, uint _area, address _expert) external onlyScoringOffersManager {
         setOfferStateInternal(_projectId, _area, _expert, 0);
-
-        address[] storage offers = scoringsMap[_projectId].areaScorings[_area].offers;
-        for (uint i = 0; i < offers.length; i++) {
-            if (offers[i] == _expert) {
-                delete offers[i];
-
-                if (i != offers.length - 1) {
-                    offers[i] = offers[offers.length - 1];
-                }
-
-                offers.length--;
-                return;
-            }
-        }
+        scoringsMap[_projectId].areaScorings[_area].offers.remove(_expert);
     }
 
     function getOfferState(uint _projectId, uint _area, address _expert) external view returns(uint) {
