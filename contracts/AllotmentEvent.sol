@@ -3,6 +3,7 @@ pragma solidity ^ 0.4.24;
 import "./Owned.sol";
 import "./TokenInterface.sol";
 import "./FreezableTokenTarget.sol";
+import "./SmartValleyToken.sol";
 import "./SafeMath.sol";
 import "./ContractExtensions.sol";
 import "./AllotmentEventsManager.sol";
@@ -15,7 +16,8 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
     enum Status {
         Published,
         InProgress,
-        Finished
+        Finished,
+        Destruction
     }
 
     uint public eventId;
@@ -89,12 +91,9 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         registerBid(_sender, _amount);
     }
 
-    function getFreezingDuration() external view returns(uint) {
-        return freezingDuration;
-    }
-
     function collectTokens() external {
         require(finishTimestamp > 0 && now > finishTimestamp);
+        require(status == Status.InProgress || status == Status.Finished);
         require(participantBids[msg.sender] > 0);
         require(!collectedSharesMap[msg.sender]);
 
@@ -110,6 +109,57 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         collectedSharesMap[msg.sender] = true;
     }
 
+    function destruct() external onlyOwner {
+        assert(status == Status.Destruction);
+        assert(!hasBids());
+
+        address returnAddress = manager.returnAddress();
+        assert(returnAddress != 0);
+
+        uint tokenBalance = token.balanceOf(address(this));
+        token.transfer(returnAddress, tokenBalance);
+
+        selfdestruct(returnAddress);
+    }
+
+    function returnBids() external onlyOwner {
+        if (status != Status.Destruction)
+            status = Status.Destruction;
+
+        uint iterationCost = 0;
+        for (uint i = 0; i < participants.length; i++) {
+            uint currentGasLeft = gasleft();
+            if (iterationCost > 0 && currentGasLeft < iterationCost * 2)
+                return;
+
+            address participant = participants[i];
+            if (participantBids[participant] > 0) {
+                SmartValleyToken(manager.smartValleyTokenAddress()).unfreeze(participant);
+                delete participantBids[participant];
+
+                if (iterationCost == 0) {
+                    iterationCost = currentGasLeft - gasleft();
+                }
+            }
+        }
+    }
+
+    function getFreezingDuration() external view returns(uint) {
+        return freezingDuration;
+    }
+
+    function hasBids() public view returns(bool) {
+        if (participants.length == 0)
+            return false;
+
+        for (uint i = 0; i < participants.length; i++) {
+            if (participantBids[participants[i]] > 0)
+                return true;
+        }
+
+        return false;
+    }
+
     function getInfo() external view returns(string _name, uint _status, uint _tokenDecimals, string _tokenTicker, address _tokenContractAddress, uint _startTimestamp, uint _finishTimestamp) {
         _name = name;
         _status = uint(status);
@@ -121,7 +171,7 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
     }
 
     function getResults() external view returns(uint _totalTokensToDistribute, uint _totalBidsAmount, address[] _participants, uint[] _participantBids, uint[] _participantShares, bool[] _collectedShares) {
-        require(status == Status.InProgress || status == Status.Finished);
+        assert(status == Status.InProgress || status == Status.Finished);
 
         _totalTokensToDistribute = getTokensToDistribute();
         _totalBidsAmount = getTotalBidsAmount();
@@ -177,9 +227,5 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         require(_value.isContract());
 
         token = TokenInterface(_value);
-    }
-
-    function getReturnAddress() private view returns(address) {
-        return manager.returnAddress();
     }
 }
