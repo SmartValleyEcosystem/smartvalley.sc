@@ -3,12 +3,10 @@ pragma solidity ^ 0.4.24;
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
 import "./AllotmentEvent.sol";
-import "./ContractExtensions.sol";
 import "./ArrayExtensions.sol";
 
 contract AllotmentEventsManager is Owned {
 
-    using ContractExtensions for address;
     using ArrayExtensions for address[];
 
     mapping(uint => address) public allotmentEventsMap;

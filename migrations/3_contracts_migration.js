@@ -69,7 +69,6 @@ module.exports = function(deployer) {
   .then(() => {
     deployer.link(ContractExtensions, SmartValleyToken);
     deployer.link(ContractExtensions, AllotmentEvent);
-    deployer.link(ContractExtensions, AllotmentEventsManager);
     return deployer.deploy(SafeMath);
   })
   .then(() => {
