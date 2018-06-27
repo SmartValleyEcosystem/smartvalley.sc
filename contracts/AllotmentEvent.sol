@@ -171,8 +171,6 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
     }
 
     function getResults() external view returns(uint _totalTokensToDistribute, uint _totalBidsAmount, address[] _participants, uint[] _participantBids, uint[] _participantShares, bool[] _collectedShares) {
-        assert(status == Status.InProgress || status == Status.Finished);
-
         _totalTokensToDistribute = getTokensToDistribute();
         _totalBidsAmount = getTotalBidsAmount();
         _participants = participants;
@@ -183,14 +181,13 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         for (uint i = 0; i < participants.length; i++) {
             _participantBids[i] = participantBids[participants[i]];
             _collectedShares[i] = collectedSharesMap[participants[i]];
-            _participantShares[i] = _totalTokensToDistribute.multiply(_participantBids[i]) / _totalBidsAmount;
+            _participantShares[i] = _totalBidsAmount == 0 ? 0 : _totalTokensToDistribute.multiply(_participantBids[i]) / _totalBidsAmount;
         }
     }
 
     function getTotalBidsAmount() private view returns(uint _result) {
         for (uint i = 0; i < participants.length; i++) {
-            uint bid = participantBids[participants[i]];
-            _result = _result.add(bid);
+            _result = _result.add(participantBids[participants[i]]);
         }
     }
 
