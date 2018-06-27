@@ -15,7 +15,7 @@ contract FreezableToken is StandardToken {
         address target;
     }
 
-    function freeze(uint _amount, address _target, bytes _data) public {
+    function freeze(uint _amount, address _target) external {
         require(msg.sender != 0 && _amount > 0);
         require(_target.isContract());
 
@@ -29,11 +29,7 @@ contract FreezableToken is StandardToken {
         Freezing memory freezing = Freezing(_amount, now + duration, _target);
         freezingsMap[msg.sender].push(freezing);
 
-        target.frozen(msg.sender, _amount, _data);
-    }
-
-    function freeze(uint _amount, address _target) external {
-        freeze(_amount, _target, new bytes(0));
+        target.frozen(msg.sender, _amount);
     }
 
     function unfreeze(address _account) external {

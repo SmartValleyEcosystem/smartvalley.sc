@@ -87,7 +87,7 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
         setFinishTimestamp(_finishTimestamp);
     }
 
-    function frozen(address _sender, uint256 _amount, bytes _data) external onlySmartValleyToken {
+    function frozen(address _sender, uint256 _amount) external onlySmartValleyToken {
         registerBid(_sender, _amount);
     }
 
