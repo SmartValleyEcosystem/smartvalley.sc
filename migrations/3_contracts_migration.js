@@ -12,6 +12,7 @@ var AllotmentEvent = artifacts.require("./AllotmentEvent.sol");
 var SmartValleyToken = artifacts.require("./SmartValleyToken.sol");
 var SafeMath = artifacts.require("./SafeMath.sol");
 var ContractExtensions = artifacts.require("./ContractExtensions.sol");
+var Minter = artifacts.require("./Minter.sol");
 
 module.exports = function(deployer) {
   var hrAreaId = 1;
@@ -162,5 +163,11 @@ module.exports = function(deployer) {
   })
   .then(() => {
     return deployer.deploy(AllotmentEventsManager, administratorsRegistry.address, allotmentTokensFreezingDuration, token.address);
+  })
+  .then(() => {
+    return deployer.deploy(Minter, token.address, 7, 100);
+  })
+  .then(minterInstance => {
+    return token.setMinter(minterInstance.address);
   });
 }
