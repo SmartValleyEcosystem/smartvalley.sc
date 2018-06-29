@@ -110,7 +110,6 @@ contract AllotmentEvent is Owned, FreezableTokenTarget {
     }
 
     function destruct() external onlyOwner {
-        assert(status == Status.Destruction);
         assert(!hasBids());
 
         address returnAddress = manager.returnAddress();
