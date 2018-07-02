@@ -17,6 +17,7 @@ contract FreezableToken is StandardToken {
 
     function freeze(uint _amount, address _target) external {
         require(msg.sender != 0 && _amount > 0);
+        require(getAvailableBalance(msg.sender) >= _amount);
         require(_target.isContract());
 
         removeExpiredFreezings(msg.sender);
@@ -47,7 +48,7 @@ contract FreezableToken is StandardToken {
         Freezing[] memory freezings = freezingsMap[_account];
         for (uint i = 0; i < freezings.length; i++) {
             if (freezings[i].endTimestamp > now) {
-                _result += freezings[i].amount;
+                _result = _result.add(freezings[i].amount);
             }
         }
     }
@@ -64,6 +65,16 @@ contract FreezableToken is StandardToken {
             _endTimestamps[i] = freezings[i].endTimestamp;
             _targets[i] = freezings[i].target;
         }
+    }
+
+    function getAvailableBalance(address _from) public view returns(uint) {
+        uint frozenBalance = getFrozenAmount(_from);
+
+        if (balanceOf(_from) <= frozenBalance) {
+            return 0;
+        }
+
+        return balanceOf(_from) - frozenBalance;
     }
 
     function removeExpiredFreezings(address _account) private {

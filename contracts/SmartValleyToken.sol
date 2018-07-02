@@ -67,16 +67,6 @@ contract SmartValleyToken is FreezableToken, MigrationAgent {
         emit Transfer(address(this), _to, _amount, new bytes(0));
     }
 
-    function getAvailableBalance(address _from) public view returns(uint) {
-        uint frozenBalance = getFrozenAmount(_from);
-
-        if (balanceOf(_from) <= frozenBalance) {
-            return 0;
-        }
-
-        return balanceOf(_from) - frozenBalance;
-    }
-
     function burn(address _from, uint _amount) public onlyBurner {
         require(_amount > 0);
         require(balances[_from] >= _amount);

@@ -57,6 +57,7 @@ contract('AllotmentEvent', async function(accounts) {
         await token.mint(accounts[3], 1000, {from: owner});
         await token.mint(accounts[4], 1000, {from: owner});
         await token.mint(accounts[5], 1000, {from: owner});
+        await token.mint(accounts[8], 1000, {from: owner});
 
         await token.blockMinting({from: owner});
 
