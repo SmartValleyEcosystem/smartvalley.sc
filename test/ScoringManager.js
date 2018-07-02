@@ -136,7 +136,7 @@ contract('ScoringManager', async function(accounts) {
         await scoringOffersManager.setPrivateScoringManager(privateScoringManager.address, {from: owner});
     });
 
-    it.only('expert should send estimates by area to scoring', async function() {
+    it('expert should send estimates by area to scoring', async function() {
         const projectId = Math.floor(Math.random() * (100000000 - 1000000 + 1)) + 1000000;
 
         console.log('STARTING SCORING...');
