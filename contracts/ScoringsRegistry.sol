@@ -2,9 +2,11 @@ pragma solidity ^ 0.4.24;
 
 import "./Owned.sol";
 import "./Scoring.sol";
-import "./previous/PrevoiusScoringsRegistry.sol";
+import "./ArrayExtensions.sol";
 
 contract ScoringsRegistry is Owned {
+
+    using ArrayExtensions for address[];
 
     struct AreaScoring {
         uint requiredExpertsCount;
@@ -70,20 +72,7 @@ contract ScoringsRegistry is Owned {
 
     function removeOffer(uint _projectId, uint _area, address _expert) external onlyScoringOffersManager {
         setOfferStateInternal(_projectId, _area, _expert, 0);
-
-        address[] storage offers = scoringsMap[_projectId].areaScorings[_area].offers;
-        for (uint i = 0; i < offers.length; i++) {
-            if (offers[i] == _expert) {
-                delete offers[i];
-
-                if (i != offers.length - 1) {
-                    offers[i] = offers[offers.length - 1];
-                }
-
-                offers.length--;
-                return;
-            }
-        }
+        scoringsMap[_projectId].areaScorings[_area].offers.remove(_expert);
     }
 
     function getOfferState(uint _projectId, uint _area, address _expert) external view returns(uint) {
@@ -124,38 +113,6 @@ contract ScoringsRegistry is Owned {
         scoringsMap[_projectId].areaScorings[_area].requiredExpertsCount--;
     }
 
-    function migrateFromHost(uint _startIndex, uint _count) external onlyOwner {
-        require(migrationHostAddress != 0, "migration host was not set");
-
-        PrevoiusScoringsRegistry migrationHost = PrevoiusScoringsRegistry(migrationHostAddress);
-
-        require(_startIndex + _count <= migrationHost.getScoringsCount());
-
-        for (uint i = _startIndex; i < _startIndex + _count; i++) {
-            uint projectId = migrationHost.getProjectIdByIndex(i);
-            uint[] memory areas = migrationHost.getScoringAreas(projectId);
-            uint acceptingDeadline = migrationHost.getPendingOffersExpirationTimestamp(projectId);
-            addScoringInternal(
-                migrationHost.getScoringAddressByIndex(i),
-                projectId,
-                areas,
-                new uint[](areas.length),
-                acceptingDeadline);
-
-            for (uint areaIndex = 0; areaIndex < areas.length; areaIndex++) {
-                uint area = areas[areaIndex];
-
-                setRequiredExpertsCount(projectId, area, migrationHost.getRequiredExpertsCount(projectId, area));
-
-                address[] memory offers = migrationHost.getOffers(projectId, area);
-                for (uint offerIndex = 0; offerIndex < offers.length; offerIndex++) {
-                    uint state = migrationHost.getOfferState(projectId, area, offers[offerIndex]);
-                    addOfferInternal(projectId, area, offers[offerIndex], state);
-                }
-            }
-        }
-    }
-
     function setScoringOffersManager(address _address) external onlyOwner {
         require(_address != 0);
         scoringOffersManagerAddress = _address;
@@ -181,7 +138,10 @@ contract ScoringsRegistry is Owned {
         scoringsMap[_projectId] = ScoringInfo(_scoringAddress, _acceptingDeadline);
 
         for (uint i = 0; i < _areas.length; i++) {
-            scoringsMap[_projectId].areaScorings[_areas[i]] = AreaScoring(_areaExpertCounts[i], new address[](0));
+            AreaScoring memory areaScoring;
+            areaScoring.requiredExpertsCount = _areaExpertCounts[i];
+
+            scoringsMap[_projectId].areaScorings[_areas[i]] = areaScoring;
         }
     }
 

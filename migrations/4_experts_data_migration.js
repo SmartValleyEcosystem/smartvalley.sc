@@ -9,7 +9,7 @@ var ArrayExtensions = artifacts.require("./ArrayExtensions.sol");
 var ScoringParametersProvider = artifacts.require("./ScoringParametersProvider.sol");
 
 module.exports = function(deployer) {
-    let previousExpertsRegistryAddress = "0xf55FB5860a701265d8e7eee3Bee0f9a27C8179dd";
+    let previousExpertsRegistryAddress = "0xbafd0b26fe99a57d79060ef4c3a165d72b5bb1f8";
     let expertsRegistryInstance;
 
     if (!previousExpertsRegistryAddress) {

@@ -4,7 +4,8 @@ import "../ExpertsRegistry.sol";
 
 contract ExpertsRegistryMock is ExpertsRegistry {
 
-    constructor(address _administratorsRegistryAddress, address _scoringParametersProviderAddress) ExpertsRegistry(_administratorsRegistryAddress, _scoringParametersProviderAddress) public {
+    constructor(address _administratorsRegistryAddress, address _scoringParametersProviderAddress)
+        ExpertsRegistry(_administratorsRegistryAddress, _scoringParametersProviderAddress) public {
     }
 
     function get(uint _area, uint[] _indices) public view returns(address[]) {

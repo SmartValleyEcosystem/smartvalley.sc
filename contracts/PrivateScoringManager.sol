@@ -2,11 +2,8 @@ pragma solidity ^ 0.4.24;
 
 import "./ScoringManagerBase.sol";
 import "./PrivateScoring.sol";
-import "./ArrayExtensions.sol";
 
 contract PrivateScoringManager is ScoringManagerBase {
-
-    using ArrayExtensions for uint[];
 
     constructor(
         address _scoringOffersManagerAddress,

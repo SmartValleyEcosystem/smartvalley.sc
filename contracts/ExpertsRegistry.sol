@@ -3,9 +3,11 @@ pragma solidity ^ 0.4.24;
 import "./Owned.sol";
 import "./AdministratorsRegistry.sol";
 import "./ScoringParametersProvider.sol";
-import "./previous/PreviousExpertsRegistry.sol";
+import "./ArrayExtensions.sol";
 
 contract ExpertsRegistry is Owned {
+    using ArrayExtensions for uint[];
+
     struct Expert {
         bool exists;
         bool enabled;
@@ -27,9 +29,10 @@ contract ExpertsRegistry is Owned {
     mapping(uint => address[]) public expertsByAreaMap;
     mapping(address => Expert) public expertsMap;
     Application[] public applications;
+
     address public migrationHostAddress;
 
-    AdministratorsRegistry private administratorsRegistry;
+    AdministratorsRegistry public administratorsRegistry;
     ScoringParametersProvider public scoringParametersProvider;
 
     constructor(address _administratorsRegistryAddress, address _scoringParametersProviderAddress) public {
@@ -81,7 +84,7 @@ contract ExpertsRegistry is Owned {
             require(expertsMap[_expert].areas[area].applied);
             require(!expertsMap[_expert].areas[area].approved);
 
-            addInArea(_expert, area);
+            addToAreaCollection(_expert, area);
         }
 
         removeApplications(_expert);
@@ -112,7 +115,7 @@ contract ExpertsRegistry is Owned {
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
             if (expertsMap[_expert].areas[area].approved) {
-                addInArea(_expert, area);
+                addToAreaCollection(_expert, area);
             }
         }
     }
@@ -125,7 +128,7 @@ contract ExpertsRegistry is Owned {
         for (uint i = 0; i < areas.length; i++) {
             uint area = areas[i];
             if (expertsMap[_expert].areas[area].approved) {
-                removeFromAreaCollection(expertsMap[_expert].areas[area].index, area);
+                removeFromAreaCollection(_expert, area);
             }
         }
 
@@ -136,7 +139,7 @@ contract ExpertsRegistry is Owned {
         require(_areas.length > 0 && _expert != 0);
 
         for (uint i = 0; i < _areas.length; i++) {
-            addInternal(_expert, _areas[i]);
+            addAreaInternal(_expert, _areas[i]);
         }
     }
 
@@ -145,10 +148,8 @@ contract ExpertsRegistry is Owned {
 
         uint[] memory areas = scoringParametersProvider.getAreas();
         for (uint i = 0; i < areas.length; i++) {
-            uint area = areas[i];
-            if (expertsMap[_expert].areas[area].approved) {
-                removeFromAreaCollection(expertsMap[_expert].areas[area].index, area);
-                expertsMap[_expert].areas[area].approved = false;
+            if (expertsMap[_expert].areas[areas[i]].approved) {
+                removeAreaInternal(_expert, areas[i]);
             }
         }
 
@@ -156,11 +157,28 @@ contract ExpertsRegistry is Owned {
         expertsMap[_expert].exists = false;
     }
 
-    function removeInArea(address _expert, uint _area) external onlyAdministrators {
-        require(expertsMap[_expert].areas[_area].approved);
+    function setAreas(address _expert, uint[] _areas) external onlyAdministrators {
+        require(_expert != 0);
+        require(expertsMap[_expert].exists);
 
-        removeFromAreaCollection(expertsMap[_expert].areas[_area].index, _area);
-        expertsMap[_expert].areas[_area].approved = false;
+        uint[] memory areas = scoringParametersProvider.getAreas();
+        for (uint i = 0; i < areas.length; i++) {
+            uint area = areas[i];
+            if (_areas.contains(area)) {
+                if (!expertsMap[_expert].areas[area].approved) {
+                    addAreaInternal(_expert, area);
+                }
+            } else {
+                if (expertsMap[_expert].areas[area].approved) {
+                    removeAreaInternal(_expert, area);
+                }
+            }
+        }
+
+        if (_areas.length == 0) {
+            expertsMap[_expert].enabled = false;
+            expertsMap[_expert].exists = false;
+        }
     }
 
     function getApplications() external view returns(address[] _experts, uint[] _areas) {
@@ -176,19 +194,6 @@ contract ExpertsRegistry is Owned {
 
         _experts = experts;
         _areas = areas;
-    }
-
-    function migrateFromHost(uint _area) external onlyOwner {
-        require(migrationHostAddress != 0);
-
-        PreviousExpertsRegistry migrationHost = PreviousExpertsRegistry(migrationHostAddress);
-
-        address[] memory experts = migrationHost.getExpertsInArea(_area);
-        for (uint i = 0; i < experts.length; i++) {
-            address expert = experts[i];
-            addInternal(expert, _area);
-            setApplicationHash(expert, migrationHost.getApplicationHash(expert));
-        }
     }
 
     function getExpertsCountInArea(uint _area) external view returns(uint) {
@@ -211,33 +216,69 @@ contract ExpertsRegistry is Owned {
         return expertsMap[_expert].applicationHash;
     }
 
-    function addInternal(address _expert, uint _area) private {
-        if (!expertsMap[_expert].exists) {
-            expertsMap[_expert].exists = true;
-        }
-
-        require(!expertsMap[_expert].areas[_area].approved);
-
-        addInArea(_expert, _area);
-    }
-
     function isApproved(address _expert, uint _area) external view returns(bool) {
         return expertsMap[_expert].areas[_area].approved;
+    }
+
+    function getExpertAreas(address _expert) external view returns(uint[] _areas) {
+        if (!expertsMap[_expert].exists) {
+            return new uint[](0);
+        }
+
+        uint count = getExpertAreasCount(_expert);
+        _areas = new uint[](count);
+
+        uint resultIndex = 0;
+        uint[] memory areas = scoringParametersProvider.getAreas();
+        for (uint i = 0; i < areas.length; i++) {
+            if (expertsMap[_expert].areas[areas[i]].approved) {
+                _areas[resultIndex] = areas[i];
+                resultIndex++;
+            }
+        }
+    }
+
+    function getExpertAreasCount(address _expert) private view returns(uint) {
+        uint result = 0;
+        uint[] memory areas = scoringParametersProvider.getAreas();
+        for (uint i = 0; i < areas.length; i++) {
+            if (expertsMap[_expert].areas[areas[i]].approved) {
+                result++;
+            }
+        }
+        return result;
     }
 
     function setApplicationHash(address _expert, bytes32 _hash) private {
         expertsMap[_expert].applicationHash = _hash;
     }
 
-    function removeFromAreaCollection(uint _index, uint _area) private {
+    function addAreaInternal(address _expert, uint _area) private {
+        if (!expertsMap[_expert].exists) {
+            expertsMap[_expert].exists = true;
+        }
+
+        require(!expertsMap[_expert].areas[_area].approved);
+        addToAreaCollection(_expert, _area);
+    }
+
+    function removeAreaInternal(address _expert, uint _area) private {
+        removeFromAreaCollection(_expert, _area);
+
+        expertsMap[_expert].areas[_area].approved = false;
+        expertsMap[_expert].areas[_area].applied = false;
+    }
+
+    function removeFromAreaCollection(address _expert, uint _area) private {
+        uint index = expertsMap[_expert].areas[_area].index;
         address[] storage expertsInArea = expertsByAreaMap[_area];
         require(expertsInArea.length > 0);
 
         address expertToMove = expertsInArea[expertsInArea.length - 1];
-        expertsInArea[_index] = expertToMove;
+        expertsInArea[index] = expertToMove;
 
-        if (_index != expertsInArea.length - 1) {
-            expertsMap[expertToMove].areas[_area].index = _index;
+        if (index != expertsInArea.length - 1) {
+            expertsMap[expertToMove].areas[_area].index = index;
         }
 
         expertsInArea.length--;
@@ -258,7 +299,7 @@ contract ExpertsRegistry is Owned {
         }
     }
 
-    function addInArea(address _expert, uint _area) private {
+    function addToAreaCollection(address _expert, uint _area) private {
         expertsByAreaMap[_area].push(_expert);
         expertsMap[_expert].areas[_area].approved = true;
         expertsMap[_expert].areas[_area].index = expertsByAreaMap[_area].length - 1;

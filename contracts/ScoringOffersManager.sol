@@ -246,12 +246,17 @@ contract ScoringOffersManager is Owned {
     }
 
     function doesOfferExist(uint _projectId, uint _area, address _expert) private view returns(bool) {
+        if (!expertsRegistry.isApproved(_expert, _area)) {
+            return false;
+        }
+
         address[] memory offers = scoringsRegistry.getOffers(_projectId, _area);
         for (uint i = 0; i < offers.length; i++) {
             if (offers[i] == _expert) {
                 return true;
             }
         }
+
         return false;
     }
 

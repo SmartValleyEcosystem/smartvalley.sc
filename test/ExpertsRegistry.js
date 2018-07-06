@@ -1,5 +1,6 @@
-var AdministratorsRegistryMock = artifacts.require('./mock/AdministratorsRegistryMock.sol');
+var AdministratorsRegistry = artifacts.require('./AdministratorsRegistry.sol');
 var ExpertsRegistryMock = artifacts.require('./mock/ExpertsRegistryMock.sol');
+var ArrayExtensions = artifacts.require('./ArrayExtensions.sol');
 var ScoringParametersProvider = artifacts.require('./ScoringParametersProvider.sol');
 
 contract('ExpertsRegistry', async function(accounts) {
@@ -90,17 +91,24 @@ contract('ExpertsRegistry', async function(accounts) {
         expert2 = accounts[4];
         expert3 = accounts[3];
 
-        administratorsRegistry = await AdministratorsRegistryMock.new({from: owner});
+        administratorsRegistry = await AdministratorsRegistry.new({from: owner});
         await administratorsRegistry.add(admin, {from: owner});
 
         scoringParametersProvider = await ScoringParametersProvider.new(administratorsRegistry.address, {from: owner});
+        await ArrayExtensions.new({from: owner});
+        await ExpertsRegistryMock.link(ArrayExtensions, {from: owner});
 
-        let areas = [1, 2, 3, 4, 5];
         expertsRegistry = await ExpertsRegistryMock.new(administratorsRegistry.address, scoringParametersProvider.address, {from: owner});
 
-        console.log('INITIALIZING CRITERIA...');
         await initializeCriteria();
     });
+
+    async function checkExpertsCountInArea(area, expectedCount) {
+        assert.equal(
+            await expertsRegistry.getExpertsCountInArea(area),
+            expectedCount,
+            `there should be ${expectedCount} experts in area ${area}`);
+    }
 
     it('application can be submitted by expert' , async function() {
         var areas = [1, 2];
@@ -139,27 +147,10 @@ contract('ExpertsRegistry', async function(accounts) {
         var approvedAreas = [2, 4];
         await expertsRegistry.approve(expert1, approvedAreas, {from: admin});
 
-        var area1ExpertsCount = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCount = await expertsRegistry.getExpertsCountInArea(2);
-        var area3ExpertsCount = await expertsRegistry.getExpertsCountInArea(3);
-        var area4ExpertsCount = await expertsRegistry.getExpertsCountInArea(4);
-
-        assert.equal(
-            area1ExpertsCount,
-            0,
-            'there should be no experts in area 1');
-        assert.equal(
-            area2ExpertsCount,
-            1,
-            'there should be one expert in area 2');
-        assert.equal(
-            area3ExpertsCount,
-            0,
-            'there should be no experts in area 3');
-        assert.equal(
-            area4ExpertsCount,
-            1,
-            'there should be one expert in area 4');
+        await checkExpertsCountInArea(1, 0);
+        await checkExpertsCountInArea(2, 1);
+        await checkExpertsCountInArea(3, 0);
+        await checkExpertsCountInArea(4, 1);
 
         assert.equal(
             await expertsRegistry.expertsByAreaMap(2, 0),
@@ -170,7 +161,7 @@ contract('ExpertsRegistry', async function(accounts) {
             expert1,
             'expert was not added to area 2 list at proper position');
 
-        var applications = await expertsRegistry.getApplications({from: owner});
+        var applications = await expertsRegistry.getApplications();
         assert.equal(
             applications[0].length,
             expert2Areas.length,
@@ -187,42 +178,10 @@ contract('ExpertsRegistry', async function(accounts) {
         var approvedAreas = [2, 4];
         await expertsRegistry.reject(expert1, {from: admin});
 
-        var area1ExpertsCount = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCount = await expertsRegistry.getExpertsCountInArea(2);
-        var area3ExpertsCount = await expertsRegistry.getExpertsCountInArea(3);
-        var area4ExpertsCount = await expertsRegistry.getExpertsCountInArea(4);
-
-        assert.equal(
-            area1ExpertsCount,
-            0,
-            'there should be no experts in area 1');
-        assert.equal(
-            area2ExpertsCount,
-            0,
-            'there should be one expert in area 2');
-        assert.equal(
-            area3ExpertsCount,
-            0,
-            'there should be no experts in area 3');
-        assert.equal(
-            area4ExpertsCount,
-            0,
-            'there should be one expert in area 4');
-
-        /*assert.equal(
-            await expertsRegistry.expertsByAreaMap(2, 0),
-            expert1,
-            'expert was not added to area 2 list at proper position');
-        assert.equal(
-            await expertsRegistry.expertsByAreaMap(4, 0),
-            expert1,
-            'expert was not added to area 2 list at proper position');
-
-        var applications = await expertsRegistry.getApplications({from: owner});
-        assert.equal(
-            applications[0].length,
-            expert2Areas.length,
-            'there are only expert 2 applications left');*/
+        await checkExpertsCountInArea(1, 0);
+        await checkExpertsCountInArea(2, 0);
+        await checkExpertsCountInArea(3, 0);
+        await checkExpertsCountInArea(4, 0);
     });
 
     it('expert can be added by admin' , async function() {
@@ -259,16 +218,20 @@ contract('ExpertsRegistry', async function(accounts) {
             'expert 3 should be returned as second');
     });
 
-    it('experts can be removed from area' , async function() {
+    it('expert areas can be set by admin' , async function() {
         var areas = [1, 2];
 
         await expertsRegistry.add(expert1, areas, {from: admin});
         await expertsRegistry.add(expert2, areas, {from: admin});
         await expertsRegistry.add(expert3, areas, {from: admin});
 
-        await expertsRegistry.removeInArea(expert2, 1, {from: admin});
-        await expertsRegistry.removeInArea(expert1, 2, {from: admin});
+        var expert2Areas = [2, 3];
+        await expertsRegistry.setAreas(expert2, expert2Areas, {from: admin});
 
+        var expart3Areas = [1, 2, 3];
+        await expertsRegistry.setAreas(expert3, expart3Areas, {from: admin});
+
+        await checkExpertsCountInArea(1, 2);
         var area1Experts = await expertsRegistry.get(1, [0, 1]);
         assert.equal(
             area1Experts[0],
@@ -279,15 +242,31 @@ contract('ExpertsRegistry', async function(accounts) {
             expert3,
             'expert 3 should be returned as second in area 1');
 
-        var area2Experts = await expertsRegistry.get(2, [0, 1]);
+        await checkExpertsCountInArea(2, 3);
+        var area2Experts = await expertsRegistry.get(2, [0, 1, 2]);
         assert.equal(
             area2Experts[0],
-            expert3,
-            'expert 3 should be returned as first in area 2');
+            expert1,
+            'expert 1 should be returned as first in area 2');
         assert.equal(
             area2Experts[1],
             expert2,
             'expert 2 should be returned as second in area 2');
+        assert.equal(
+            area2Experts[2],
+            expert3,
+            'expert 3 should be returned as second in area 2');
+
+        await checkExpertsCountInArea(3, 2);
+        var area3Experts = await expertsRegistry.get(3, [0, 1]);
+        assert.equal(
+            area3Experts[0],
+            expert2,
+            'expert 2 should be returned as first in area 3');
+        assert.equal(
+            area3Experts[1],
+            expert3,
+            'expert 3 should be returned as second in area 3');
     });
 
     it('experts can be removed' , async function() {
@@ -296,34 +275,15 @@ contract('ExpertsRegistry', async function(accounts) {
         await expertsRegistry.add(expert2, areas, {from: admin});
         await expertsRegistry.add(expert3, areas, {from: admin});
 
-        var area1ExpertsCountBefore = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCountBefore = await expertsRegistry.getExpertsCountInArea(2);
-
-        assert.equal(
-            area1ExpertsCountBefore,
-            3,
-            'there should be 3 experts in area 1 initially');
-        assert.equal(
-            area2ExpertsCountBefore,
-            3,
-            'there should be 3 experts in area 2 initially');
+        await checkExpertsCountInArea(1, 3);
+        await checkExpertsCountInArea(2, 3);
 
         await expertsRegistry.remove(expert1, {from: admin});
 
-        var area1ExpertsCountAfter = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCountAfter = await expertsRegistry.getExpertsCountInArea(2);
-
-        assert.equal(
-            area1ExpertsCountAfter,
-            2,
-            'there should be one expert left in area 1');
-        assert.equal(
-            area2ExpertsCountAfter,
-            2,
-            'there should be one expert left in area 2');
+        await checkExpertsCountInArea(1, 2);
+        await checkExpertsCountInArea(2, 2);
 
         var area1Experts = await expertsRegistry.get(1, [0, 1]);
-
         assert.equal(
             area1Experts[0],
             expert3,
@@ -350,31 +310,13 @@ contract('ExpertsRegistry', async function(accounts) {
         await expertsRegistry.add(expert2, areas, {from: admin});
         await expertsRegistry.add(expert3, areas, {from: admin});
 
-        var area1ExpertsCountBefore = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCountBefore = await expertsRegistry.getExpertsCountInArea(2);
-
-        assert.equal(
-            area1ExpertsCountBefore,
-            3,
-            'there should be 3 experts in area 1 initially');
-        assert.equal(
-            area2ExpertsCountBefore,
-            3,
-            'there should be 3 experts in area 2 initially');
+        await checkExpertsCountInArea(1, 3);
+        await checkExpertsCountInArea(2, 3);
 
         await expertsRegistry.disable(expert1, {from: expert1});
 
-        var area1ExpertsCountAfter = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCountAfter = await expertsRegistry.getExpertsCountInArea(2);
-
-        assert.equal(
-            area1ExpertsCountAfter,
-            2,
-            'there should be one expert left in area 1');
-        assert.equal(
-            area2ExpertsCountAfter,
-            2,
-            'there should be one expert left in area 2');
+        await checkExpertsCountInArea(1, 2);
+        await checkExpertsCountInArea(2, 2);
 
         var area1Experts = await expertsRegistry.get(1, [0, 1]);
 
@@ -403,32 +345,14 @@ contract('ExpertsRegistry', async function(accounts) {
         await expertsRegistry.add(expert2, [1, 2], {from: admin});
         await expertsRegistry.add(expert3, [2], {from: admin});
 
-        var area1ExpertsCountBefore = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCountBefore = await expertsRegistry.getExpertsCountInArea(2);
-
-        assert.equal(
-            area1ExpertsCountBefore,
-            2,
-            'there should be 3 experts in area 1 initially');
-        assert.equal(
-            area2ExpertsCountBefore,
-            3,
-            'there should be 3 experts in area 2 initially');
+        await checkExpertsCountInArea(1, 2);
+        await checkExpertsCountInArea(2, 3);
 
         await expertsRegistry.disable(expert1, {from: expert1});
         await expertsRegistry.enable(expert1, {from: expert1});
 
-        var area1ExpertsCountAfter = await expertsRegistry.getExpertsCountInArea(1);
-        var area2ExpertsCountAfter = await expertsRegistry.getExpertsCountInArea(2);
-
-        assert.equal(
-            area1ExpertsCountAfter,
-            2,
-            'there should be the same amount of experts in area 1');
-        assert.equal(
-            area2ExpertsCountAfter,
-            3,
-            'there should be the same amount of experts in area 2');
+        await checkExpertsCountInArea(1, 2);
+        await checkExpertsCountInArea(2, 3);
     });
 
     it('[mock] add experts in list to registry', async function () {
